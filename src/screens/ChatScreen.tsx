@@ -8,12 +8,21 @@ import {
   Image,
   Dimensions,
   Animated,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useGameStore } from '../store/gameStore';
 import { RootStackParamList, Dialogue, DialogueOption } from '../types';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { getAiResponse, AiMessage } from '../services/aiService';
+import { getStageAvatar } from '../utils/characterUtils';
+
+// API key'i buraya girin ya da bir environment variable ile yönetin
+const ANTHROPIC_API_KEY = process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY ?? '';
 
 const { width } = Dimensions.get('window');
 
@@ -43,6 +52,12 @@ export default function ChatScreen() {
   const [affectionToast, setAffectionToast] = useState<number | null>(null);
   const toastOpacity = useRef(new Animated.Value(0)).current;
   const scrollRef = useRef<ScrollView>(null);
+
+  // AI sohbet modu
+  const [isAiMode, setIsAiMode] = useState(false);
+  const [inputText, setInputText] = useState('');
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [aiHistory, setAiHistory] = useState<AiMessage[]>([]);
 
   if (!character) return null;
 
@@ -95,6 +110,14 @@ export default function ChatScreen() {
       } else {
         setCurrentDialogue(null);
         setShowOptions(false);
+        // Yapay zeka moduna geç
+        setIsAiMode(true);
+        const transitionMsg: ChatMessage = {
+          id: `ai-start-${Date.now()}`,
+          text: '✨ Artık serbestçe sohbet edebilirsin...',
+          isPlayer: false,
+        };
+        setMessages((prev) => [...prev, transitionMsg]);
       }
       scrollRef.current?.scrollToEnd({ animated: true });
     }, 800);
@@ -102,149 +125,208 @@ export default function ChatScreen() {
     scrollRef.current?.scrollToEnd({ animated: true });
   }
 
+  async function handleAiSend() {
+    const text = inputText.trim();
+    if (!text || isAiLoading || !character) return;
+
+    if (!ANTHROPIC_API_KEY) {
+      const errorMsg: ChatMessage = {
+        id: `err-${Date.now()}`,
+        text: '⚠️ API key eksik. .env dosyasına EXPO_PUBLIC_ANTHROPIC_API_KEY ekleyin.',
+        isPlayer: false,
+      };
+      setMessages((prev) => [...prev, errorMsg]);
+      return;
+    }
+
+    const playerMsg: ChatMessage = {
+      id: `ai-p-${Date.now()}`,
+      text,
+      isPlayer: true,
+    };
+    setMessages((prev) => [...prev, playerMsg]);
+    setInputText('');
+    setIsAiLoading(true);
+    scrollRef.current?.scrollToEnd({ animated: true });
+
+    const newHistory: AiMessage[] = [...aiHistory, { role: 'user', content: text }];
+
+    try {
+      const aiText = await getAiResponse(character, aiHistory, text, ANTHROPIC_API_KEY);
+      const aiMsg: ChatMessage = {
+        id: `ai-r-${Date.now()}`,
+        text: aiText,
+        isPlayer: false,
+      };
+      setMessages((prev) => [...prev, aiMsg]);
+      setAiHistory([...newHistory, { role: 'assistant', content: aiText }]);
+      // Küçük bir sevgi puanı ekle her başarılı AI sohbet için
+      addAffection(characterId, 1);
+    } catch (e) {
+      const errMsg: ChatMessage = {
+        id: `ai-err-${Date.now()}`,
+        text: '⚠️ Bir hata oluştu, tekrar dene.',
+        isPlayer: false,
+      };
+      setMessages((prev) => [...prev, errMsg]);
+    } finally {
+      setIsAiLoading(false);
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+    }
+  }
+
   return (
-    <LinearGradient colors={['#0a0015', '#1a0030']} style={styles.container}>
-      {/* Header */}
-      <LinearGradient
-        colors={['#1a0030', '#0a0015']}
-        style={styles.header}
-      >
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backIcon}>←</Text>
-        </TouchableOpacity>
-        <Image source={{ uri: character.avatar }} style={styles.headerAvatar} />
-        <View style={styles.headerInfo}>
-          <Text style={styles.headerName}>{character.name}</Text>
-          <View style={styles.onlineRow}>
-            <View style={[styles.onlineDot, { backgroundColor: character.color }]} />
-            <Text style={styles.onlineText}>Çevrimiçi</Text>
-          </View>
-        </View>
-        <View style={styles.affectionBadge}>
-          <Text style={styles.affectionEmoji}>💝</Text>
-          <Text style={[styles.affectionBadgeText, { color: character.color }]}>
-            {character.affection}
-          </Text>
-        </View>
-      </LinearGradient>
-
-      {/* Messages */}
-      <ScrollView
-        ref={scrollRef}
-        style={styles.messagesContainer}
-        contentContainerStyle={styles.messagesContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Initial message */}
-        {messages.length === 0 && currentDialogue && (
-          <View style={styles.bubbleRow}>
-            <Image source={{ uri: character.avatar }} style={styles.smallAvatar} />
-            <View style={[styles.bubble, styles.characterBubble, { borderColor: character.color + '44' }]}>
-              <Text style={styles.bubbleText}>{currentDialogue.message}</Text>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <LinearGradient colors={['#0a0015', '#1a0030']} style={styles.container}>
+        {/* Header */}
+        <LinearGradient colors={['#1a0030', '#0a0015']} style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Text style={styles.backIcon}>←</Text>
+          </TouchableOpacity>
+          <Image source={{ uri: getStageAvatar(character) }} style={styles.headerAvatar} />
+          <View style={styles.headerInfo}>
+            <Text style={styles.headerName}>{character.name}</Text>
+            <View style={styles.onlineRow}>
+              <View style={[styles.onlineDot, { backgroundColor: character.color }]} />
+              <Text style={styles.onlineText}>
+                {isAiMode ? 'AI Modu Aktif' : 'Çevrimiçi'}
+              </Text>
             </View>
           </View>
-        )}
-
-        {messages.map((msg) => (
-          <View
-            key={msg.id}
-            style={[
-              styles.bubbleRow,
-              msg.isPlayer && styles.playerRow,
-            ]}
-          >
-            {!msg.isPlayer && (
-              <Image source={{ uri: character.avatar }} style={styles.smallAvatar} />
-            )}
-            <View
-              style={[
-                styles.bubble,
-                msg.isPlayer
-                  ? [styles.playerBubble, { backgroundColor: character.color }]
-                  : [styles.characterBubble, { borderColor: character.color + '44' }],
-              ]}
-            >
-              <Text style={styles.bubbleText}>{msg.text}</Text>
-              {msg.isPlayer && msg.affectionChange !== undefined && msg.affectionChange !== 0 && (
-                <Text style={styles.affectionHint}>
-                  {msg.affectionChange > 0 ? `+${msg.affectionChange} 💕` : `${msg.affectionChange} 💔`}
-                </Text>
-              )}
-            </View>
-          </View>
-        ))}
-
-        {!currentDialogue && messages.length > 0 && (
-          <View style={styles.endMessage}>
-            <Text style={styles.endText}>Konuşma bitti. İlişki durumun: </Text>
-            <Text style={[styles.endStage, { color: character.color }]}>
-              {character.affection >= 80 ? 'Romantik' :
-               character.affection >= 60 ? 'Crush' :
-               character.affection >= 40 ? 'Arkadaş' :
-               character.affection >= 20 ? 'Tanıdık' : 'Yabancı'}
+          <View style={styles.affectionBadge}>
+            <Text style={styles.affectionEmoji}>💝</Text>
+            <Text style={[styles.affectionBadgeText, { color: character.color }]}>
+              {character.affection}
             </Text>
           </View>
+        </LinearGradient>
+
+        {/* Messages */}
+        <ScrollView
+          ref={scrollRef}
+          style={styles.messagesContainer}
+          contentContainerStyle={styles.messagesContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {messages.length === 0 && currentDialogue && (
+            <View style={styles.bubbleRow}>
+              <Image source={{ uri: getStageAvatar(character) }} style={styles.smallAvatar} />
+              <View style={[styles.bubble, styles.characterBubble, { borderColor: character.color + '44' }]}>
+                <Text style={styles.bubbleText}>{currentDialogue.message}</Text>
+              </View>
+            </View>
+          )}
+
+          {messages.map((msg) => (
+            <View
+              key={msg.id}
+              style={[styles.bubbleRow, msg.isPlayer && styles.playerRow]}
+            >
+              {!msg.isPlayer && (
+                <Image source={{ uri: getStageAvatar(character) }} style={styles.smallAvatar} />
+              )}
+              <View
+                style={[
+                  styles.bubble,
+                  msg.isPlayer
+                    ? [styles.playerBubble, { backgroundColor: character.color }]
+                    : [styles.characterBubble, { borderColor: character.color + '44' }],
+                ]}
+              >
+                <Text style={styles.bubbleText}>{msg.text}</Text>
+                {msg.isPlayer && msg.affectionChange !== undefined && msg.affectionChange !== 0 && (
+                  <Text style={styles.affectionHint}>
+                    {msg.affectionChange > 0 ? `+${msg.affectionChange} 💕` : `${msg.affectionChange} 💔`}
+                  </Text>
+                )}
+              </View>
+            </View>
+          ))}
+
+          {isAiLoading && (
+            <View style={styles.bubbleRow}>
+              <Image source={{ uri: getStageAvatar(character) }} style={styles.smallAvatar} />
+              <View style={[styles.bubble, styles.characterBubble, { borderColor: character.color + '44' }]}>
+                <ActivityIndicator size="small" color={character.color} />
+              </View>
+            </View>
+          )}
+        </ScrollView>
+
+        {/* Affection Toast */}
+        {affectionToast !== null && (
+          <Animated.View style={[styles.toast, { opacity: toastOpacity }]}>
+            <Text style={[
+              styles.toastText,
+              { color: affectionToast > 0 ? '#ff69b4' : '#ff4444' },
+            ]}>
+              {affectionToast > 0 ? `+${affectionToast} 💕` : `${affectionToast} 💔`}
+            </Text>
+          </Animated.View>
         )}
-      </ScrollView>
 
-      {/* Affection Toast */}
-      {affectionToast !== null && (
-        <Animated.View style={[styles.toast, { opacity: toastOpacity }]}>
-          <Text style={[
-            styles.toastText,
-            { color: affectionToast > 0 ? '#ff69b4' : '#ff4444' }
-          ]}>
-            {affectionToast > 0 ? `+${affectionToast} 💕` : `${affectionToast} 💔`}
-          </Text>
-        </Animated.View>
-      )}
+        {/* Structured Dialogue Options */}
+        {showOptions && currentDialogue && (
+          <View style={styles.optionsContainer}>
+            {currentDialogue.options.map((option) => (
+              <TouchableOpacity
+                key={option.id}
+                style={styles.optionButton}
+                onPress={() => handleOptionPress(option)}
+                activeOpacity={0.8}
+              >
+                <LinearGradient
+                  colors={['rgba(255,255,255,0.06)', 'rgba(255,255,255,0.03)']}
+                  style={styles.optionGradient}
+                >
+                  <Text style={styles.optionText}>{option.text}</Text>
+                  <View style={[
+                    styles.optionHint,
+                    { backgroundColor: option.affectionChange > 0 ? '#ff69b422' : option.affectionChange < 0 ? '#ff444422' : '#ffffff11' },
+                  ]}>
+                    <Text style={{ fontSize: 10, color: option.affectionChange > 0 ? '#ff69b4' : option.affectionChange < 0 ? '#ff4444' : '#888' }}>
+                      {option.affectionChange > 0 ? `+${option.affectionChange}` : option.affectionChange < 0 ? `${option.affectionChange}` : '±0'}
+                    </Text>
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
-      {/* Options */}
-      {showOptions && currentDialogue && (
-        <View style={styles.optionsContainer}>
-          {currentDialogue.options.map((option) => (
+        {/* AI Free Chat Input */}
+        {isAiMode && (
+          <View style={styles.aiInputContainer}>
+            <TextInput
+              style={[styles.aiInput, { borderColor: character.color + '66' }]}
+              placeholder={`${character.name}'e bir şey yaz...`}
+              placeholderTextColor="rgba(255,255,255,0.3)"
+              value={inputText}
+              onChangeText={setInputText}
+              onSubmitEditing={handleAiSend}
+              returnKeyType="send"
+              multiline={false}
+              editable={!isAiLoading}
+            />
             <TouchableOpacity
-              key={option.id}
-              style={styles.optionButton}
-              onPress={() => handleOptionPress(option)}
+              style={[styles.sendButton, { backgroundColor: character.color }]}
+              onPress={handleAiSend}
+              disabled={isAiLoading || !inputText.trim()}
               activeOpacity={0.8}
             >
-              <LinearGradient
-                colors={['rgba(255,255,255,0.06)', 'rgba(255,255,255,0.03)']}
-                style={styles.optionGradient}
-              >
-                <Text style={styles.optionText}>{option.text}</Text>
-                <View style={[
-                  styles.optionHint,
-                  { backgroundColor: option.affectionChange > 0 ? '#ff69b422' : option.affectionChange < 0 ? '#ff444422' : '#ffffff11' }
-                ]}>
-                  <Text style={{ fontSize: 10, color: option.affectionChange > 0 ? '#ff69b4' : option.affectionChange < 0 ? '#ff4444' : '#888' }}>
-                    {option.affectionChange > 0 ? `+${option.affectionChange}` : option.affectionChange < 0 ? `${option.affectionChange}` : '±0'}
-                  </Text>
-                </View>
-              </LinearGradient>
+              {isAiLoading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.sendIcon}>➤</Text>
+              )}
             </TouchableOpacity>
-          ))}
-        </View>
-      )}
-
-      {!showOptions && !currentDialogue && (
-        <View style={styles.optionsContainer}>
-          <TouchableOpacity
-            style={styles.optionButton}
-            onPress={() => navigation.navigate('CharacterProfile', { characterId })}
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={[character.color + 'aa', character.color + '66']}
-              style={styles.optionGradient}
-            >
-              <Text style={styles.optionText}>Profile Dön 👤</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
-      )}
-    </LinearGradient>
+          </View>
+        )}
+      </LinearGradient>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -367,19 +449,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
     textAlign: 'right',
   },
-  endMessage: {
-    alignItems: 'center',
-    marginTop: 20,
-    gap: 4,
-  },
-  endText: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 14,
-  },
-  endStage: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
   toast: {
     position: 'absolute',
     top: 120,
@@ -421,5 +490,37 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 8,
     marginLeft: 8,
+  },
+  aiInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    paddingBottom: Platform.OS === 'ios' ? 28 : 12,
+    gap: 10,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  aiInput: {
+    flex: 1,
+    height: 44,
+    borderWidth: 1,
+    borderRadius: 22,
+    paddingHorizontal: 16,
+    color: '#FFFFFF',
+    fontSize: 15,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+  },
+  sendButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sendIcon: {
+    color: '#fff',
+    fontSize: 18,
+    marginLeft: 2,
   },
 });

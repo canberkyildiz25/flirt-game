@@ -13,6 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useGameStore } from '../store/gameStore';
 import { Character, RootStackParamList } from '../types';
+import { getStageAvatar } from '../utils/characterUtils';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
@@ -43,7 +44,7 @@ function CharacterCard({ character }: { character: Character }) {
     >
       <View style={styles.imageContainer}>
         {character.isUnlocked ? (
-          <Image source={{ uri: character.avatar }} style={styles.avatar} />
+          <Image source={{ uri: getStageAvatar(character) }} style={styles.avatar} />
         ) : (
           <View style={[styles.avatar, styles.lockedAvatar]}>
             <Text style={styles.lockIcon}>🔒</Text>

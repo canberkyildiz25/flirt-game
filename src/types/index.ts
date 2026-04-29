@@ -30,8 +30,9 @@ export interface Character {
   personality: string;
   hobbies: string[];
   bio: string;
-  avatar: string; // unsplash URL
-  color: string; // theme color
+  avatar: string;
+  stageAvatars?: Partial<Record<RelationshipStage, string>>; // ilişki ilerledikçe değişen fotoğraf
+  color: string;
   affection: number; // 0-100
   stage: RelationshipStage;
   isUnlocked: boolean;

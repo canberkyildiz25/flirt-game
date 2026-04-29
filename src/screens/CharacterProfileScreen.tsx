@@ -7,12 +7,14 @@ import {
   TouchableOpacity,
   ScrollView,
   Dimensions,
+  Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useGameStore, STAGE_THRESHOLDS } from '../store/gameStore';
 import { RootStackParamList, RelationshipStage } from '../types';
+import { getStageAvatar } from '../utils/characterUtils';
 
 const { width, height } = Dimensions.get('window');
 
@@ -47,7 +49,7 @@ export default function CharacterProfileScreen() {
       <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
         {/* Hero Image */}
         <View style={styles.heroContainer}>
-          <Image source={{ uri: character.avatar }} style={styles.heroImage} />
+          <Image source={{ uri: getStageAvatar(character) }} style={styles.heroImage} />
           <LinearGradient
             colors={['rgba(10,0,21,0)', 'rgba(10,0,21,0.6)', '#0a0015']}
             style={styles.heroGradient}
@@ -135,6 +137,41 @@ export default function CharacterProfileScreen() {
             <Text style={styles.sectionTitle}>Kişilik</Text>
             <Text style={styles.bioText}>{character.personality}</Text>
           </View>
+
+          {/* Fotoğraf Galerisi */}
+          {character.stageAvatars && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Fotoğraf Galerisi</Text>
+              <View style={styles.galleryRow}>
+                {STAGE_ORDER.map((stage, i) => {
+                  const avatarUrl = character.stageAvatars?.[stage];
+                  if (!avatarUrl) return null;
+                  const isUnlocked = i <= currentStageIndex;
+                  return (
+                    <View key={stage} style={styles.galleryItem}>
+                      {isUnlocked ? (
+                        <Image source={{ uri: avatarUrl }} style={styles.galleryThumb} />
+                      ) : (
+                        <View style={[styles.galleryThumb, styles.galleryLocked]}>
+                          <Text style={styles.galleryLockIcon}>🔒</Text>
+                        </View>
+                      )}
+                      <View style={[
+                        styles.galleryDot,
+                        { backgroundColor: isUnlocked ? character.color : 'rgba(255,255,255,0.15)' },
+                      ]} />
+                      <Text style={[
+                        styles.galleryStageLabel,
+                        { color: isUnlocked ? character.color : 'rgba(255,255,255,0.2)' },
+                      ]}>
+                        {STAGE_LABELS[stage].split(' ')[0]}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          )}
 
           {/* Chat Button */}
           <TouchableOpacity
@@ -298,6 +335,39 @@ const styles = StyleSheet.create({
   hobbyText: {
     fontSize: 13,
     fontWeight: '500',
+  },
+  galleryRow: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  galleryItem: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  galleryThumb: {
+    width: 52,
+    height: 68,
+    borderRadius: 10,
+  },
+  galleryLocked: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  galleryLockIcon: {
+    fontSize: 18,
+  },
+  galleryDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+  },
+  galleryStageLabel: {
+    fontSize: 8,
+    fontWeight: '600',
   },
   chatButton: {
     marginTop: 8,
