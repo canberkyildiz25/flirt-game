@@ -43,6 +43,11 @@ export default function ChatScreen() {
 
   const character = useGameStore((s) => s.characters.find((c) => c.id === characterId));
   const addAffection = useGameStore((s) => s.addAffection);
+  const earnCoins = useGameStore((s) => s.earnCoins);
+  const setLastPlayed = useGameStore((s) => s.setLastPlayed);
+
+  // Bu karakteri son oynanan olarak işaretle
+  React.useEffect(() => { setLastPlayed(characterId); }, []);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentDialogue, setCurrentDialogue] = useState<Dialogue | null>(
@@ -92,6 +97,7 @@ export default function ChatScreen() {
     setMessages((prev) => [...prev, playerMsg, responseMsg]);
     setShowOptions(false);
     addAffection(characterId, option.affectionChange);
+    earnCoins(5);
     showToast(option.affectionChange);
 
     setTimeout(() => {
@@ -110,8 +116,8 @@ export default function ChatScreen() {
       } else {
         setCurrentDialogue(null);
         setShowOptions(false);
-        // Yapay zeka moduna geç
         setIsAiMode(true);
+        earnCoins(20); // diyalog zinciri tamamlama bonusu
         const transitionMsg: ChatMessage = {
           id: `ai-start-${Date.now()}`,
           text: '✨ Artık serbestçe sohbet edebilirsin...',
@@ -160,8 +166,8 @@ export default function ChatScreen() {
       };
       setMessages((prev) => [...prev, aiMsg]);
       setAiHistory([...newHistory, { role: 'assistant', content: aiText }]);
-      // Küçük bir sevgi puanı ekle her başarılı AI sohbet için
       addAffection(characterId, 1);
+      earnCoins(3);
     } catch (e) {
       const errMsg: ChatMessage = {
         id: `ai-err-${Date.now()}`,

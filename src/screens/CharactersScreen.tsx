@@ -7,11 +7,12 @@ import {
   TouchableOpacity,
   Image,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { useGameStore } from '../store/gameStore';
+import { useGameStore, UNLOCK_COST } from '../store/gameStore';
 import { Character, RootStackParamList } from '../types';
 import { getStageAvatar } from '../utils/characterUtils';
 
@@ -31,45 +32,73 @@ const STAGE_LABELS: Record<string, string> = {
 
 function CharacterCard({ character }: { character: Character }) {
   const navigation = useNavigation<Nav>();
+  const coins = useGameStore((s) => s.coins);
+  const spendCoins = useGameStore((s) => s.spendCoins);
+  const unlockCharacter = useGameStore((s) => s.unlockCharacter);
+
+  function handleUnlock() {
+    if (coins < UNLOCK_COST) {
+      Alert.alert(
+        'Yetersiz Coin',
+        `Bu karakteri açmak için ${UNLOCK_COST} 🪙 gerekiyor.\nŞu an ${coins} 🪙 var.\nDaha fazla sohbet ederek coin kazan!`,
+        [{ text: 'Tamam' }]
+      );
+      return;
+    }
+    Alert.alert(
+      `${character.name}'i Tanı`,
+      `Bu gizemli karakteri tanımak için ${UNLOCK_COST} 🪙 harcamak istiyor musun?`,
+      [
+        { text: 'Vazgeç', style: 'cancel' },
+        {
+          text: `${UNLOCK_COST} 🪙 Harca`,
+          onPress: () => {
+            spendCoins(UNLOCK_COST);
+            unlockCharacter(character.id);
+          },
+        },
+      ]
+    );
+  }
+
+  function handleCardPress() {
+    if (character.isUnlocked) {
+      navigation.navigate('CharacterProfile', { characterId: character.id });
+    } else {
+      handleUnlock();
+    }
+  }
 
   return (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => {
-        if (character.isUnlocked) {
-          navigation.navigate('CharacterProfile', { characterId: character.id });
-        }
-      }}
-      activeOpacity={0.9}
-    >
+    <TouchableOpacity style={styles.card} onPress={handleCardPress} activeOpacity={0.9}>
       <View style={styles.imageContainer}>
         {character.isUnlocked ? (
           <Image source={{ uri: getStageAvatar(character) }} style={styles.avatar} />
         ) : (
           <View style={[styles.avatar, styles.lockedAvatar]}>
             <Text style={styles.lockIcon}>🔒</Text>
+            <Text style={styles.lockCost}>{UNLOCK_COST} 🪙</Text>
           </View>
         )}
         <LinearGradient
           colors={['transparent', 'rgba(0,0,0,0.85)']}
           style={styles.imageGradient}
         />
-        <View style={[styles.stageBadge, { backgroundColor: character.color + '33', borderColor: character.color }]}>
-          <Text style={[styles.stageText, { color: character.color }]}>
-            {STAGE_LABELS[character.stage]}
-          </Text>
-        </View>
+        {character.isUnlocked && (
+          <View style={[styles.stageBadge, { backgroundColor: character.color + '33', borderColor: character.color }]}>
+            <Text style={[styles.stageText, { color: character.color }]}>
+              {STAGE_LABELS[character.stage]}
+            </Text>
+          </View>
+        )}
       </View>
 
-      <LinearGradient
-        colors={['#1a0030', '#0d001f']}
-        style={styles.cardBottom}
-      >
+      <LinearGradient colors={['#1a0030', '#0d001f']} style={styles.cardBottom}>
         <Text style={styles.characterName}>
           {character.isUnlocked ? character.name : '???'}
         </Text>
         <Text style={styles.characterAge}>
-          {character.isUnlocked ? `${character.age} yaşında` : 'Kilitli'}
+          {character.isUnlocked ? `${character.age} yaşında` : 'Gizemli biri...'}
         </Text>
 
         {character.isUnlocked && (
@@ -88,6 +117,12 @@ function CharacterCard({ character }: { character: Character }) {
             <Text style={styles.affectionText}>{character.affection}</Text>
           </View>
         )}
+
+        {!character.isUnlocked && (
+          <View style={styles.unlockHint}>
+            <Text style={styles.unlockHintText}>Tanımak için dokun</Text>
+          </View>
+        )}
       </LinearGradient>
     </TouchableOpacity>
   );
@@ -95,12 +130,21 @@ function CharacterCard({ character }: { character: Character }) {
 
 export default function CharactersScreen() {
   const characters = useGameStore((s) => s.characters);
+  const coins = useGameStore((s) => s.coins);
+  const unlockedCount = characters.filter((c) => c.isUnlocked).length;
 
   return (
     <LinearGradient colors={['#0a0015', '#1a0030']} style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Karakterler</Text>
-        <Text style={styles.headerSubtitle}>Kimi tanımak istersin?</Text>
+        <View>
+          <Text style={styles.headerTitle}>Karakterler</Text>
+          <Text style={styles.headerSubtitle}>
+            {unlockedCount}/{characters.length} tanışıldı
+          </Text>
+        </View>
+        <View style={styles.coinBadge}>
+          <Text style={styles.coinText}>🪙 {coins}</Text>
+        </View>
       </View>
 
       <FlatList
@@ -124,6 +168,9 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingHorizontal: 24,
     paddingBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
   },
   headerTitle: {
     fontSize: 32,
@@ -134,6 +181,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'rgba(255,255,255,0.5)',
     marginTop: 4,
+  },
+  coinBadge: {
+    backgroundColor: 'rgba(255,200,0,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,200,0,0.3)',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  coinText: {
+    color: '#FFD700',
+    fontSize: 15,
+    fontWeight: '700',
   },
   listContent: {
     paddingHorizontal: 16,
@@ -163,9 +223,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a0030',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
   },
   lockIcon: {
-    fontSize: 40,
+    fontSize: 36,
+  },
+  lockCost: {
+    fontSize: 13,
+    color: '#FFD700',
+    fontWeight: '700',
   },
   imageGradient: {
     position: 'absolute',
@@ -222,5 +288,13 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.4)',
     width: 20,
     textAlign: 'right',
+  },
+  unlockHint: {
+    marginTop: 8,
+  },
+  unlockHintText: {
+    fontSize: 11,
+    color: 'rgba(255,200,0,0.6)',
+    fontStyle: 'italic',
   },
 });
