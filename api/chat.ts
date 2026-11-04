@@ -1,8 +1,9 @@
-import Anthropic from '@anthropic-ai/sdk';
 import { CHARACTERS } from '../src/data/characters';
 import { buildSystemPrompt, STAGES } from './_lib/prompt';
 import { RelationshipStage } from '../src/types';
 
+const POLLINATIONS_URL = 'https://gen.pollinations.ai/v1/chat/completions';
+const MODEL = process.env.CHAT_MODEL ?? 'openai/gpt-5.4-mini';
 const MAX_HISTORY = 20;
 const MAX_LENGTH = 1000;
 const WINDOW_MS = 60_000;
@@ -18,7 +19,7 @@ const REPLY_SCHEMA = {
   additionalProperties: false,
 };
 
-// Örnek başına çalışır: tek başına bütçe koruması değildir, Anthropic tarafında harcama limiti de gerekir.
+// Örnek başına çalışır: tek başına bütçe koruması değildir, Pollinations tarafında bakiye de sınır koyar.
 const hits = new Map<string, number[]>();
 
 function isLimited(ip: string, now = Date.now()): boolean {
@@ -38,9 +39,12 @@ interface Res {
   json(body: unknown): void;
 }
 
+type ChatMessage = { role: 'user' | 'assistant'; content: string };
+
 export function parseReply(raw: string) {
   try {
-    const parsed = JSON.parse(raw);
+    // Bazı modeller JSON'u kod bloğuna sarar.
+    const parsed = JSON.parse(raw.replace(/^\s*```(?:json)?\s*|\s*```\s*$/g, ''));
     if (typeof parsed.reply !== 'string' || !parsed.reply.trim()) return null;
     const change = Math.round(Number(parsed.affectionChange)) || 0;
     return { reply: parsed.reply.trim(), affectionChange: Math.min(5, Math.max(-3, change)) };
@@ -67,7 +71,7 @@ export function parseBody(body: any) {
       m.content.length <= MAX_LENGTH
   );
   if (!valid) return null;
-  // API ilk mesajın kullanıcıdan gelmesini ister; kırpma asistanla başlatabilir.
+  // Konuşma kullanıcı mesajıyla başlamalı; kırpma asistanla başlatabilir.
   const start = clean.findIndex((m: any) => m.role === 'user');
   return {
     character,
@@ -76,7 +80,7 @@ export function parseBody(body: any) {
     messages: [
       ...(start === -1 ? [] : clean.slice(start)),
       { role: 'user' as const, content: message },
-    ] as Anthropic.MessageParam[],
+    ] as ChatMessage[],
   };
 }
 
@@ -89,28 +93,37 @@ export default async function handler(req: Req, res: Res) {
 
   const input = parseBody(req.body);
   if (!input) return res.status(400).json({ error: 'invalid' });
-  if (!process.env.ANTHROPIC_API_KEY) return res.status(503).json({ error: 'not_configured' });
+  if (!process.env.POLLINATIONS_KEY) return res.status(503).json({ error: 'not_configured' });
 
   try {
-    const response = await new Anthropic().beta.messages.create({
-      model: 'claude-opus-5-5',
-      max_tokens: 2000,
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default',
-      output_config: { effort: 'low', format: { type: 'json_schema', schema: REPLY_SCHEMA } },
-      system: buildSystemPrompt(input.character, input.stage, input.affection),
-      messages: input.messages,
-    } as any) as Anthropic.Beta.BetaMessage;
-    if (response.stop_reason === 'refusal') return res.status(200).json({ reply: null, affectionChange: 0 });
-    const raw = response.content
-      .map((block) => (block.type === 'text' ? block.text : ''))
-      .join('');
-    const parsed = parseReply(raw);
+    const response = await fetch(POLLINATIONS_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.POLLINATIONS_KEY}`,
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 600,
+        response_format: { type: 'json_schema', json_schema: { name: 'reply', strict: true, schema: REPLY_SCHEMA } },
+        messages: [
+          { role: 'system', content: buildSystemPrompt(input.character, input.stage, input.affection) },
+          ...input.messages,
+        ],
+      }),
+      signal: AbortSignal.timeout(45_000),
+    });
+    if (response.status === 429) return res.status(429).json({ error: 'rate_limited' });
+    if (!response.ok) {
+      console.error('chat failed', response.status);
+      return res.status(502).json({ error: 'upstream' });
+    }
+    const data = await response.json();
+    const parsed = parseReply(data?.choices?.[0]?.message?.content ?? '');
     if (!parsed) return res.status(502).json({ error: 'upstream' });
     return res.status(200).json(parsed);
   } catch (error) {
-    if (error instanceof Anthropic.RateLimitError) return res.status(429).json({ error: 'rate_limited' });
-    console.error('chat failed', error instanceof Anthropic.APIError ? error.status : error);
+    console.error('chat failed', error instanceof Error ? error.name : error);
     return res.status(502).json({ error: 'upstream' });
   }
 }
