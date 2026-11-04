@@ -1,460 +1,210 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Dimensions,
-} from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useAuth } from '../store/authStore';
 import { supabase } from '../services/supabase';
-import { DAILY_REWARD, today } from '../store/gameStore';
-import { useGameStore } from '../store/gameStore';
-import { RootStackParamList } from '../types';
+import { DAILY_REWARD, today, useGameStore } from '../store/gameStore';
+import { Character, RootStackParamList } from '../types';
 import Portrait from '../components/Portrait';
-
-const { width, height } = Dimensions.get('window');
+import Icon from '../components/Icon';
+import { Button, CoinPill, HeartMeter, StageRibbon } from '../components/ui';
+import { color, font, radius, space, type } from '../theme';
+import { useLayout } from '../navigation/layout';
 
 type Nav = StackNavigationProp<RootStackParamList, 'Home'>;
 
-const STAGE_LABELS: Record<string, string> = {
-  stranger: 'Yabancı',
-  acquaintance: 'Tanıdık',
-  friend: 'Arkadaş',
-  crush: 'Crush',
-  romantic: 'Romantik',
-  lover: 'Sevgili',
-};
+function FeaturedCard({ character, onPress }: { character: Character; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${character.name} ile sohbet et`}
+      onPress={onPress}
+      style={({ pressed }) => [styles.featured, pressed && { transform: [{ translateY: 2 }] }]}
+    >
+      <Portrait character={character} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['transparent', 'rgba(26,15,20,0.92)']} style={styles.featuredShade} />
+      <View style={styles.featuredRibbon}>
+        <StageRibbon stage={character.stage} tint={color.butter} />
+      </View>
+      <View style={styles.featuredInfo}>
+        <Text style={styles.featuredName}>{character.name}</Text>
+        <Text style={styles.featuredJob} numberOfLines={1}>{character.occupation}</Text>
+      </View>
+    </Pressable>
+  );
+}
 
 export default function HomeScreen() {
   const navigation = useNavigation<Nav>();
   const characters = useGameStore((s) => s.characters);
   const coins = useGameStore((s) => s.coins);
   const lastPlayedId = useGameStore((s) => s.lastPlayedCharacterId);
-
-  const unlockedCount = characters.filter((c) => c.isUnlocked).length;
-  const totalAffection = characters.reduce((sum, c) => sum + c.affection, 0);
-  const bestCharacter = characters
-    .filter((c) => c.isUnlocked)
-    .sort((a, b) => b.affection - a.affection)[0] ?? null;
-  const session = useAuth((s) => s.session);
   const lastRewardDate = useGameStore((s) => s.lastRewardDate);
   const claimDailyReward = useGameStore((s) => s.claimDailyReward);
+  const session = useAuth((s) => s.session);
+  // Geniş ekranda logo ve jeton sol menüde zaten var.
+  const { isWide } = useLayout();
+
+  const unlocked = characters.filter((c) => c.isUnlocked);
+  const lockedCount = characters.length - unlocked.length;
   const rewardReady = lastRewardDate !== today();
-  const lastPlayed = lastPlayedId
-    ? characters.find((c) => c.id === lastPlayedId) ?? null
-    : null;
+  const lastPlayed = lastPlayedId ? characters.find((c) => c.id === lastPlayedId) ?? null : null;
+  // Önce en çok bağ kurulanlar; hiç konuşulmadıysa listedeki sırayla.
+  const featured = [...unlocked].sort((a, b) => b.affection - a.affection).slice(0, 6);
 
   return (
-    <LinearGradient colors={['#0a0015', '#1a0030', '#2d0050']} style={styles.container}>
-      {/* Decorative orbs */}
-      <View style={styles.orbContainer} pointerEvents="none">
-        <View style={styles.orb} />
-        <View style={[styles.orb, styles.orbSecond]} />
+    <ScrollView style={styles.root} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      {!isWide && (
+      <View style={styles.topRow}>
+        <Text style={styles.logo}>FlirtGame</Text>
+        <CoinPill amount={coins} />
+      </View>
+      )}
+
+      <Text style={styles.hero}>Bu gece kiminle?</Text>
+      <Text style={styles.lede}>Kartını seç, sohbeti başlat. Her mesajda bağ güçlenir, yeni aşamalar açılır.</Text>
+
+      <View style={styles.ctas}>
+        <Button
+          label={lastPlayed ? `${lastPlayed.name} ile devam et` : 'Sohbete başla'}
+          icon="chat"
+          onPress={() =>
+            lastPlayed ? navigation.navigate('Chat', { characterId: lastPlayed.id }) : navigation.navigate('Characters')
+          }
+        />
+        <Button label="Kendi karakterini yarat" icon="plus" variant="ghost" onPress={() => navigation.navigate('Create')} />
       </View>
 
-      <View style={styles.content}>
-        {/* Logo */}
-        <View style={styles.logoContainer}>
-          <Text style={styles.heartEmoji}>💝</Text>
-          <Text style={styles.title}>FlirtGame</Text>
-          <Text style={styles.subtitle}>Kalbini dinle, seçimini yap</Text>
+      {featured.length > 0 && (
+        <View style={styles.section}>
+          <View style={styles.sectionHead}>
+            <Text style={type.heading}>Öne çıkanlar</Text>
+            <Pressable accessibilityRole="link" onPress={() => navigation.navigate('Characters')}>
+              <Text style={styles.link}>Tüm kartlar</Text>
+            </Pressable>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.featuredRow}>
+            {featured.map((c) => (
+              <FeaturedCard key={c.id} character={c} onPress={() => navigation.navigate('CharacterProfile', { characterId: c.id })} />
+            ))}
+          </ScrollView>
         </View>
+      )}
 
-        {/* Coin + Stats Bar */}
-        <View style={styles.statsCard}>
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{unlockedCount}</Text>
-            <Text style={styles.statLabel}>Tanışılan</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={[styles.statNumber, { color: '#FFD700' }]}>🪙 {coins}</Text>
-            <Text style={styles.statLabel}>Coin</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{totalAffection}</Text>
-            <Text style={styles.statLabel}>Toplam 💕</Text>
-          </View>
-        </View>
-
-        {/* Son konuşulan karakter */}
-        {lastPlayed && (
-          <TouchableOpacity
-            style={styles.lastPlayedCard}
-            onPress={() => navigation.navigate('Chat', { characterId: lastPlayed.id })}
-            activeOpacity={0.85}
-          >
-            <Portrait character={lastPlayed} style={styles.lastPlayedAvatar} />
-            <LinearGradient
-              colors={['transparent', 'rgba(0,0,0,0.7)']}
-              style={styles.lastPlayedGradient}
-            />
-            <View style={styles.lastPlayedInfo}>
-              <Text style={styles.lastPlayedLabel}>Son Konuşma</Text>
-              <Text style={styles.lastPlayedName}>{lastPlayed.name}</Text>
-              <View style={[styles.stagePill, { borderColor: lastPlayed.color }]}>
-                <Text style={[styles.stagePillText, { color: lastPlayed.color }]}>
-                  {STAGE_LABELS[lastPlayed.stage]} · {lastPlayed.affection}/100 💕
-                </Text>
-              </View>
-            </View>
-            <View style={[styles.continueBtn, { backgroundColor: lastPlayed.color }]}>
-              <Text style={styles.continueBtnText}>Devam</Text>
-            </View>
-          </TouchableOpacity>
-        )}
-
-        {/* En iyi bağ */}
-        {bestCharacter && bestCharacter.affection > 0 && bestCharacter.id !== lastPlayedId && (
-          <View style={styles.bestCard}>
-            <Text style={styles.bestLabel}>En Güçlü Bağ</Text>
-            <View style={styles.bestRow}>
-              <Portrait character={bestCharacter} style={styles.bestAvatar} />
-              <View style={styles.bestInfo}>
-                <Text style={styles.bestName}>{bestCharacter.name}</Text>
-                <View style={styles.bestBarTrack}>
-                  <View
-                    style={[
-                      styles.bestBarFill,
-                      { width: `${bestCharacter.affection}%` as any, backgroundColor: bestCharacter.color },
-                    ]}
-                  />
-                </View>
-                <Text style={[styles.bestStage, { color: bestCharacter.color }]}>
-                  {STAGE_LABELS[bestCharacter.stage]}
-                </Text>
-              </View>
-            </View>
-          </View>
-        )}
-
-        {/* Günlük ödül */}
-        <View style={styles.rewardCard}>
+      {/* Bilet şeklinde günlük ödül */}
+      <View style={[styles.ticket, !rewardReady && styles.ticketUsed]}>
+        <View style={styles.ticketLeft}>
+          <Icon name="ticket" size={22} color={rewardReady ? color.butterInk : color.creamFaint} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.rewardTitle}>Günlük ödül</Text>
-            <Text style={styles.rewardBody}>
-              {rewardReady ? `Bugünkü ${DAILY_REWARD} 🪙 seni bekliyor.` : 'Bugünkünü aldın. Yarın yine gel.'}
+            <Text style={[styles.ticketTitle, !rewardReady && { color: color.cream }]}>Günlük bilet</Text>
+            <Text style={[styles.ticketBody, !rewardReady && { color: color.creamFaint }]}>
+              {rewardReady ? `${DAILY_REWARD} jeton seni bekliyor` : 'Bugünkü alındı, yarın yenisi gelir'}
             </Text>
           </View>
-          <TouchableOpacity
-            accessibilityRole="button"
-            disabled={!rewardReady}
-            onPress={claimDailyReward}
-            style={[styles.rewardButton, !rewardReady && styles.rewardButtonDone]}
-          >
-            <Text style={styles.rewardButtonText}>{rewardReady ? 'Al' : 'Alındı'}</Text>
-          </TouchableOpacity>
         </View>
-
-        {/* Ana buton */}
-        <TouchableOpacity
-          style={styles.primaryButton}
-          onPress={() => navigation.navigate('Characters')}
-          activeOpacity={0.85}
-        >
-          <LinearGradient
-            colors={['#E91E8C', '#9C27B0']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.gradientButton}
-          >
-            <Text style={styles.primaryButtonText}>
-              {unlockedCount === 0 ? 'Karakterleri Keşfet' : 'Karakterlere Bak'}
-            </Text>
-          </LinearGradient>
-        </TouchableOpacity>
-
-        <TouchableOpacity
+        <View style={styles.ticketCut} />
+        <Pressable
           accessibilityRole="button"
-          style={styles.secondaryButton}
-          onPress={() => navigation.navigate('Conversations')}
+          disabled={!rewardReady}
+          onPress={claimDailyReward}
+          style={({ pressed }) => [styles.ticketButton, pressed && { transform: [{ translateY: 1 }] }]}
         >
-          <Text style={styles.secondaryButtonText}>Sohbetlerim</Text>
-        </TouchableOpacity>
-
-        {supabase && !session && (
-          <TouchableOpacity
-            accessibilityRole="button"
-            style={styles.secondaryButton}
-            onPress={() => navigation.navigate('Auth', { mode: 'signup' })}
-          >
-            <Text style={styles.secondaryButtonText}>Kayıt ol · ilerlemen her cihazda dursun</Text>
-          </TouchableOpacity>
-        )}
-
-        <Text style={styles.hint}>
-          {characters.length - unlockedCount > 0
-            ? `${characters.length - unlockedCount} gizemli karakter seni bekliyor 🔒`
-            : 'Tüm karakterleri tanıdın! 🎉'}
-        </Text>
+          <Text style={[styles.ticketButtonText, !rewardReady && { color: color.creamFaint }]}>
+            {rewardReady ? 'Al' : 'Alındı'}
+          </Text>
+        </Pressable>
       </View>
-    </LinearGradient>
+
+      {lastPlayed && (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => navigation.navigate('Conversations')}
+          style={({ pressed }) => [styles.recent, pressed && { backgroundColor: color.ink3 }]}
+        >
+          <Portrait character={lastPlayed} style={styles.recentAvatar} />
+          <View style={{ flex: 1 }}>
+            <Text style={type.bodyStrong}>Sohbetlerin</Text>
+            <Text style={type.small}>Son: {lastPlayed.name}</Text>
+          </View>
+          <HeartMeter value={lastPlayed.affection} size={13} />
+        </Pressable>
+      )}
+
+      {supabase && !session && (
+        <View style={styles.signup}>
+          <Text style={type.bodyStrong}>Kartların kaybolmasın</Text>
+          <Text style={type.small}>Kayıt ol; jetonların, kartların ve sohbetlerin her cihazda seninle olsun.</Text>
+          <Button label="Kayıt ol" variant="reward" compact style={{ alignSelf: 'flex-start', marginTop: space.md }} onPress={() => navigation.navigate('Auth', { mode: 'signup' })} />
+        </View>
+      )}
+
+      {lockedCount > 0 && <Text style={styles.footnote}>{lockedCount} kart hâlâ kilitli. Jeton biriktir, aç.</Text>}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  rewardCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 16,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,215,0,0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,215,0,0.25)',
-    marginBottom: 16,
-  },
-  rewardTitle: { color: '#FFD700', fontSize: 15, fontWeight: '800' },
-  rewardBody: { color: 'rgba(255,255,255,0.75)', fontSize: 13, marginTop: 2 },
-  rewardButton: { backgroundColor: '#FFD700', borderRadius: 10, paddingHorizontal: 18, minHeight: 40, justifyContent: 'center' },
-  rewardButtonDone: { backgroundColor: 'rgba(255,255,255,0.12)' },
-  rewardButtonText: { color: '#1B1320', fontWeight: '800', fontSize: 14 },
-  secondaryButton: {
-    minHeight: 48,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.18)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 12,
-  },
-  secondaryButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  container: {
-    flex: 1,
-  },
-  orbContainer: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-  },
-  orb: {
-    position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: 'rgba(233,30,140,0.08)',
-    top: height * 0.3,
-    left: -50,
-  },
-  orbSecond: {
-    backgroundColor: 'rgba(156,39,176,0.08)',
-    top: height * 0.5,
-    right: -50,
-    left: undefined,
-  },
-  content: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 24,
-    gap: 20,
-    justifyContent: 'center',
-  },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  heartEmoji: {
-    fontSize: 56,
-    marginBottom: 12,
-  },
-  title: {
-    fontSize: 40,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: 2,
-    textShadowColor: '#E91E8C',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 20,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: 'rgba(255,255,255,0.5)',
-    marginTop: 6,
-    letterSpacing: 1,
-  },
-  statsCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 20,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    width: '100%',
-    justifyContent: 'space-between',
-  },
-  statItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  statNumber: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#E91E8C',
-  },
-  statLabel: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.4)',
-    marginTop: 3,
-  },
-  statDivider: {
-    width: 1,
-    height: 30,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-  },
-  lastPlayedCard: {
-    width: '100%',
-    height: 120,
-    borderRadius: 20,
+  root: { flex: 1, backgroundColor: color.ink },
+  content: { padding: space.xl, paddingTop: 48, paddingBottom: 48 },
+  topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 40 },
+  logo: { fontFamily: font.display, fontSize: 18, color: color.red },
+  hero: { ...type.hero, fontSize: 40, lineHeight: 46, marginBottom: space.md },
+  lede: { ...type.body, maxWidth: 440, marginBottom: space.xl },
+  ctas: { gap: space.md, marginBottom: 40 },
+  section: { marginBottom: space.xxl },
+  sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: space.md },
+  link: { fontFamily: font.medium, fontSize: 14, color: color.butter },
+  featuredRow: { gap: space.md, paddingRight: space.xl },
+  featured: {
+    width: 150,
+    height: 210,
+    borderRadius: radius.lg,
+    borderWidth: 3,
+    borderColor: color.cream,
     overflow: 'hidden',
-    position: 'relative',
+    backgroundColor: color.ink3,
+  },
+  featuredShade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '45%' },
+  featuredRibbon: { position: 'absolute', top: space.sm, left: space.sm },
+  featuredInfo: { position: 'absolute', left: space.md, right: space.md, bottom: space.md },
+  featuredName: { fontFamily: font.displayMedium, fontSize: 16, color: color.cream },
+  featuredJob: { fontFamily: font.body, fontSize: 12, color: color.creamDim },
+  ticket: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  lastPlayedAvatar: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    width: '100%',
-    height: '100%',
-  },
-  lastPlayedGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  lastPlayedInfo: {
-    flex: 1,
-    padding: 16,
-    zIndex: 1,
-  },
-  lastPlayedLabel: {
-    fontSize: 10,
-    color: 'rgba(255,255,255,0.5)',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 2,
-  },
-  lastPlayedName: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#fff',
-  },
-  stagePill: {
-    alignSelf: 'flex-start',
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    marginTop: 4,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-  },
-  stagePillText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  continueBtn: {
-    margin: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-    zIndex: 1,
-    alignSelf: 'center',
-  },
-  continueBtnText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 14,
-  },
-  bestCard: {
-    width: '100%',
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 20,
-    padding: 16,
-  },
-  bestLabel: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.4)',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 10,
-  },
-  bestRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  bestAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-  },
-  bestInfo: {
-    flex: 1,
-    gap: 4,
-  },
-  bestName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  bestBarTrack: {
-    height: 4,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 2,
+    alignItems: 'stretch',
+    borderRadius: radius.md,
+    backgroundColor: color.butter,
+    marginBottom: space.lg,
     overflow: 'hidden',
   },
-  bestBarFill: {
-    height: '100%',
-    borderRadius: 2,
-  },
-  bestStage: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  primaryButton: {
-    width: '100%',
-    borderRadius: 16,
-    overflow: 'hidden',
-    shadowColor: '#E91E8C',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 8,
-    marginTop: 4,
-  },
-  gradientButton: {
-    paddingVertical: 18,
+  ticketUsed: { backgroundColor: color.ink2, borderWidth: 1, borderColor: color.line },
+  ticketLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.lg },
+  ticketTitle: { fontFamily: font.displayMedium, fontSize: 15, color: color.butterInk },
+  ticketBody: { fontFamily: font.medium, fontSize: 13, color: 'rgba(42,26,10,0.75)' },
+  ticketCut: { width: 0, borderLeftWidth: 2, borderStyle: 'dashed', borderColor: 'rgba(42,26,10,0.35)', marginVertical: space.sm },
+  ticketButton: { paddingHorizontal: space.xl, alignItems: 'center', justifyContent: 'center' },
+  ticketButtonText: { fontFamily: font.display, fontSize: 15, color: color.butterInk },
+  recent: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: space.md,
+    padding: space.md,
+    borderRadius: radius.md,
+    backgroundColor: color.ink2,
+    borderWidth: 1,
+    borderColor: color.line,
+    marginBottom: space.lg,
   },
-  primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+  recentAvatar: { width: 44, height: 44, borderRadius: 22 },
+  signup: {
+    padding: space.lg,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: color.lineStrong,
+    borderStyle: 'dashed',
+    marginBottom: space.lg,
   },
-  hint: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.3)',
-    textAlign: 'center',
-  },
+  footnote: { ...type.small, textAlign: 'center', marginTop: space.md },
 });

@@ -1,37 +1,18 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Dimensions,
-  Animated,
-} from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { useGameStore, STAGE_THRESHOLDS } from '../store/gameStore';
-import { RootStackParamList, RelationshipStage } from '../types';
+import { useGameStore } from '../store/gameStore';
+import { RootStackParamList } from '../types';
 import Portrait from '../components/Portrait';
-
-const { width, height } = Dimensions.get('window');
+import Icon from '../components/Icon';
+import { Button, HeartMeter, IconButton, STAGE_LABELS, StageRibbon } from '../components/ui';
+import { STAGE_ORDER } from '../utils/characterUtils';
+import { color, font, radius, space, type } from '../theme';
 
 type Nav = StackNavigationProp<RootStackParamList, 'CharacterProfile'>;
 type Route = RouteProp<RootStackParamList, 'CharacterProfile'>;
-
-const STAGE_LABELS: Record<RelationshipStage, string> = {
-  stranger: 'Yabancı',
-  acquaintance: 'Tanıdık',
-  friend: 'Arkadaş',
-  crush: 'Crush',
-  romantic: 'Romantik',
-  lover: 'Sevgili 💕',
-};
-
-const STAGE_ORDER: RelationshipStage[] = [
-  'stranger', 'acquaintance', 'friend', 'crush', 'romantic', 'lover',
-];
 
 export default function CharacterProfileScreen() {
   const navigation = useNavigation<Nav>();
@@ -41,348 +22,141 @@ export default function CharacterProfileScreen() {
 
   if (!character) return null;
 
-  const currentStageIndex = STAGE_ORDER.indexOf(character.stage);
+  const stageIndex = STAGE_ORDER.indexOf(character.stage);
+  const back = () => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Characters'));
 
   return (
-    <View style={styles.container}>
-      <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
-        {/* Hero Image */}
-        <View style={styles.heroContainer}>
-          <Portrait character={character} style={styles.heroImage} />
-          <LinearGradient
-            colors={['rgba(10,0,21,0)', 'rgba(10,0,21,0.6)', '#0a0015']}
-            style={styles.heroGradient}
-          />
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.backIcon}>←</Text>
-          </TouchableOpacity>
+    <View style={styles.root}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.top}>
+          <IconButton icon="back" label="Geri" onPress={back} />
         </View>
 
-        {/* Content */}
-        <LinearGradient colors={['#0a0015', '#1a0030']} style={styles.content}>
-          {/* Name & Occupation */}
-          <View style={styles.nameRow}>
-            <View>
+        {/* Büyük kart: profilin kendisi koleksiyon kartının yakın çekimi */}
+        <View style={styles.card}>
+          <View style={styles.photo}>
+            <Portrait character={character} style={StyleSheet.absoluteFill} />
+            <LinearGradient colors={['transparent', 'rgba(26,15,20,0.95)']} style={styles.shade} />
+            <View style={styles.ribbon}>
+              <StageRibbon stage={character.stage} tint={color.butter} />
+            </View>
+            <View style={styles.nameBlock}>
               <Text style={styles.name}>{character.name}</Text>
-              <Text style={styles.occupation}>{character.occupation} · {character.age} yaş</Text>
-            </View>
-            <View style={[styles.stagePill, { borderColor: character.color }]}>
-              <Text style={[styles.stageLabel, { color: character.color }]}>
-                {STAGE_LABELS[character.stage]}
-              </Text>
+              <Text style={styles.job}>{character.occupation} · {character.age}</Text>
             </View>
           </View>
+          <View style={styles.meter}>
+            <HeartMeter value={character.affection} size={18} />
+            <Text style={styles.meterText}>{character.affection} / 100</Text>
+          </View>
+        </View>
 
-          {/* Affection Bar */}
-          <View style={styles.affectionSection}>
-            <View style={styles.affectionHeader}>
-              <Text style={styles.sectionTitle}>Bağ Seviyesi</Text>
-              <Text style={[styles.affectionValue, { color: character.color }]}>
-                {character.affection} / 100
-              </Text>
-            </View>
-            <View style={styles.bigTrack}>
-              <LinearGradient
-                colors={[character.color + 'aa', character.color]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={[styles.bigFill, { width: `${character.affection}%` as any }]}
-              />
-            </View>
-            {/* Stage markers */}
-            <View style={styles.stageMarkers}>
-              {STAGE_ORDER.map((stage, i) => (
-                <View key={stage} style={styles.markerItem}>
-                  <View
-                    style={[
-                      styles.markerDot,
-                      i <= currentStageIndex && { backgroundColor: character.color },
-                    ]}
-                  />
-                  <Text style={[
-                    styles.markerLabel,
-                    i <= currentStageIndex && { color: character.color },
-                  ]}>
-                    {STAGE_LABELS[stage].split(' ')[0]}
-                  </Text>
+        <Button
+          label={`${character.name} ile sohbet et`}
+          icon="chat"
+          onPress={() => navigation.navigate('Chat', { characterId: character.id })}
+          style={styles.cta}
+        />
+
+        {/* Aşama yolu: her aşama sohbet ettikçe açılır */}
+        <Text style={styles.label}>AŞAMALAR</Text>
+        <View style={styles.path}>
+          {STAGE_ORDER.map((stage, i) => {
+            const reached = i <= stageIndex;
+            return (
+              <View key={stage} style={styles.step}>
+                <View style={[styles.dot, reached && styles.dotOn, i === stageIndex && styles.dotNow]}>
+                  {reached ? <Icon name="heart" size={12} color={color.ink} /> : <Icon name="lock" size={11} color={color.creamFaint} />}
                 </View>
-              ))}
-            </View>
-          </View>
-
-          {/* Bio */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Hakkında</Text>
-            <Text style={styles.bioText}>{character.bio}</Text>
-          </View>
-
-          {/* Hobbies */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>İlgi Alanları</Text>
-            <View style={styles.hobbiesRow}>
-              {character.hobbies.map((hobby) => (
-                <View key={hobby} style={[styles.hobbyTag, { borderColor: character.color + '66' }]}>
-                  <Text style={[styles.hobbyText, { color: character.color }]}>{hobby}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-
-          {/* Personality */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Kişilik</Text>
-            <Text style={styles.bioText}>{character.personality}</Text>
-          </View>
-
-          {/* Portre Galerisi */}
-          {(
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Portreler</Text>
-              <View style={styles.galleryRow}>
-                {STAGE_ORDER.map((stage, i) => {
-                  const isUnlocked = i <= currentStageIndex;
-                  return (
-                    <View key={stage} style={styles.galleryItem}>
-                      {isUnlocked ? (
-                        <Portrait character={character} stage={stage} style={styles.galleryThumb} />
-                      ) : (
-                        <View style={[styles.galleryThumb, styles.galleryLocked]}>
-                          <Text style={styles.galleryLockIcon}>🔒</Text>
-                        </View>
-                      )}
-                      <View style={[
-                        styles.galleryDot,
-                        { backgroundColor: isUnlocked ? character.color : 'rgba(255,255,255,0.15)' },
-                      ]} />
-                      <Text style={[
-                        styles.galleryStageLabel,
-                        { color: isUnlocked ? character.color : 'rgba(255,255,255,0.2)' },
-                      ]}>
-                        {STAGE_LABELS[stage].split(' ')[0]}
-                      </Text>
-                    </View>
-                  );
-                })}
+                <Text style={[styles.stepText, reached && styles.stepTextOn]} numberOfLines={1}>
+                  {STAGE_LABELS[stage]}
+                </Text>
               </View>
-            </View>
-          )}
+            );
+          })}
+        </View>
 
-          {/* Chat Button */}
-          <TouchableOpacity
-            style={styles.chatButton}
-            onPress={() => navigation.navigate('Chat', { characterId: character.id })}
-            activeOpacity={0.85}
-          >
-            <LinearGradient
-              colors={[character.color, character.color + 'bb']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.chatGradient}
-            >
-              <Text style={styles.chatButtonText}>Sohbet Başlat 💬</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </LinearGradient>
+        {!!character.bio && (
+          <>
+            <Text style={styles.label}>HAKKINDA</Text>
+            <Text style={styles.bio}>{character.bio}</Text>
+          </>
+        )}
+
+        <Text style={styles.label}>KİŞİLİK</Text>
+        <Text style={styles.bio}>{character.personality}</Text>
+
+        {character.hobbies.length > 0 && (
+          <>
+            <Text style={styles.label}>İLGİ ALANLARI</Text>
+            <View style={styles.tags}>
+              {character.hobbies.map((h) => (
+                <View key={h} style={styles.tag}>
+                  <Text style={styles.tagText}>{h}</Text>
+                </View>
+              ))}
+            </View>
+          </>
+        )}
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0a0015',
+  root: { flex: 1, backgroundColor: color.ink },
+  content: { padding: space.xl, paddingTop: 40, paddingBottom: 48 },
+  top: { marginBottom: space.lg },
+  card: {
+    borderRadius: radius.lg,
+    borderWidth: 4,
+    borderColor: color.cream,
+    backgroundColor: color.ink2,
+    overflow: 'hidden',
+    marginBottom: space.lg,
   },
-  heroContainer: {
-    height: height * 0.5,
-    position: 'relative',
+  photo: { aspectRatio: 4 / 5, backgroundColor: color.ink3 },
+  shade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '40%' },
+  ribbon: { position: 'absolute', top: space.md, left: space.md },
+  nameBlock: { position: 'absolute', left: space.lg, right: space.lg, bottom: space.lg },
+  name: { ...type.hero, fontSize: 36, lineHeight: 42 },
+  job: { fontFamily: font.medium, fontSize: 15, color: color.creamDim, marginTop: 2 },
+  meter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
   },
-  heroImage: {
-    width: '100%',
-    height: '100%',
-  },
-  heroGradient: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: '60%',
-  },
-  backButton: {
-    position: 'absolute',
-    top: 56,
-    left: 20,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+  meterText: { fontFamily: font.bold, fontSize: 14, color: color.creamDim },
+  cta: { marginBottom: space.xxl },
+  label: { ...type.label, marginBottom: space.md },
+  path: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: space.xxl },
+  step: { alignItems: 'center', gap: 6, flex: 1 },
+  dot: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: color.ink2,
+    borderWidth: 1.5,
+    borderColor: color.lineStrong,
   },
-  backIcon: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingBottom: 40,
-    marginTop: -20,
-  },
-  nameRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 24,
-  },
-  name: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  occupation: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.5)',
-    marginTop: 4,
-  },
-  stagePill: {
+  dotOn: { backgroundColor: color.butter, borderColor: color.butter },
+  dotNow: { borderColor: color.cream, borderWidth: 3 },
+  stepText: { fontFamily: font.medium, fontSize: 11, color: color.creamFaint },
+  stepTextOn: { color: color.cream },
+  bio: { ...type.body, marginBottom: space.xl },
+  tags: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  tag: {
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginTop: 4,
-  },
-  stageLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  affectionSection: {
-    marginBottom: 28,
-  },
-  affectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  affectionValue: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  bigTrack: {
-    height: 8,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  bigFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  stageMarkers: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-  },
-  markerItem: {
-    alignItems: 'center',
-    gap: 4,
-  },
-  markerDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-  },
-  markerLabel: {
-    fontSize: 8,
-    color: 'rgba(255,255,255,0.3)',
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.4)',
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
-    marginBottom: 8,
-  },
-  bioText: {
-    fontSize: 15,
-    color: 'rgba(255,255,255,0.8)',
-    lineHeight: 22,
-  },
-  hobbiesRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  hobbyTag: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 10,
-    borderWidth: 1,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-  },
-  hobbyText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  galleryRow: {
-    flexDirection: 'row',
-    gap: 8,
-    flexWrap: 'wrap',
-  },
-  galleryItem: {
-    alignItems: 'center',
-    gap: 4,
-  },
-  galleryThumb: {
-    width: 52,
-    height: 68,
-    borderRadius: 10,
-  },
-  galleryLocked: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    alignItems: 'center',
+    minHeight: 32,
     justifyContent: 'center',
+    borderRadius: radius.pill,
+    backgroundColor: color.ink2,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: color.lineStrong,
   },
-  galleryLockIcon: {
-    fontSize: 18,
-  },
-  galleryDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-  },
-  galleryStageLabel: {
-    fontSize: 8,
-    fontWeight: '600',
-  },
-  chatButton: {
-    marginTop: 8,
-    borderRadius: 16,
-    overflow: 'hidden',
-    shadowColor: '#E91E8C',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  chatGradient: {
-    paddingVertical: 18,
-    alignItems: 'center',
-  },
-  chatButtonText: {
-    color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '700',
-  },
+  tagText: { fontFamily: font.medium, fontSize: 13, color: color.cream },
 });

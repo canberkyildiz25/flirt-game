@@ -4,6 +4,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { supabase } from '../services/supabase';
 import { RootStackParamList } from '../types';
+import { color, font, radius, space, type } from '../theme';
 
 type Mode = 'login' | 'signup' | 'reset';
 type Nav = StackNavigationProp<RootStackParamList, 'Auth'>;
@@ -144,7 +145,7 @@ export default function AuthScreen() {
         autoComplete="email"
         keyboardType="email-address"
         placeholder="ornek@eposta.com"
-        placeholderTextColor="rgba(255,255,255,0.3)"
+        placeholderTextColor={color.creamFaint}
       />
 
       {mode !== 'reset' && (
@@ -157,7 +158,7 @@ export default function AuthScreen() {
             secureTextEntry
             autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
             placeholder={mode === 'signup' ? 'En az 8 karakter' : ''}
-            placeholderTextColor="rgba(255,255,255,0.3)"
+            placeholderTextColor={color.creamFaint}
             onSubmitEditing={submit}
           />
         </>
@@ -167,9 +168,9 @@ export default function AuthScreen() {
         <>
           <Text style={styles.label}>Doğum tarihi</Text>
           <View style={styles.dateRow}>
-            <TextInput style={[styles.input, styles.dateShort]} value={day} onChangeText={setDay} placeholder="Gün" keyboardType="number-pad" maxLength={2} placeholderTextColor="rgba(255,255,255,0.3)" />
-            <TextInput style={[styles.input, styles.dateShort]} value={month} onChangeText={setMonth} placeholder="Ay" keyboardType="number-pad" maxLength={2} placeholderTextColor="rgba(255,255,255,0.3)" />
-            <TextInput style={[styles.input, styles.dateLong]} value={year} onChangeText={setYear} placeholder="Yıl" keyboardType="number-pad" maxLength={4} placeholderTextColor="rgba(255,255,255,0.3)" />
+            <TextInput style={[styles.input, styles.dateShort]} value={day} onChangeText={setDay} placeholder="Gün" keyboardType="number-pad" maxLength={2} placeholderTextColor={color.creamFaint} />
+            <TextInput style={[styles.input, styles.dateShort]} value={month} onChangeText={setMonth} placeholder="Ay" keyboardType="number-pad" maxLength={2} placeholderTextColor={color.creamFaint} />
+            <TextInput style={[styles.input, styles.dateLong]} value={year} onChangeText={setYear} placeholder="Yıl" keyboardType="number-pad" maxLength={4} placeholderTextColor={color.creamFaint} />
           </View>
           <Text style={styles.small}>18 yaşından küçükler kayıt olamaz.</Text>
         </>
@@ -204,32 +205,36 @@ export default function AuthScreen() {
 }
 
 export const authStyles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0a0015', paddingHorizontal: 24, paddingTop: 56, maxWidth: 440, width: '100%', alignSelf: 'center' },
-  back: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', justifyContent: 'center', marginBottom: 24 },
-  backText: { color: '#fff', fontSize: 18 },
-  title: { color: '#fff', fontSize: 30, fontWeight: '800', marginBottom: 8 },
-  body: { color: 'rgba(255,255,255,0.7)', fontSize: 15, lineHeight: 22, marginBottom: 8 },
-  label: { color: 'rgba(255,255,255,0.75)', fontSize: 13, marginTop: 16, marginBottom: 6 },
+  root: { flex: 1, backgroundColor: color.ink, paddingHorizontal: space.xl, paddingTop: 56, maxWidth: 440, width: '100%', alignSelf: 'center' },
+  back: {
+    width: 44, height: 44, borderRadius: 22, backgroundColor: color.ink2, borderWidth: 1, borderColor: color.line,
+    alignItems: 'center', justifyContent: 'center', marginBottom: space.xl,
+  },
+  backText: { color: color.cream, fontSize: 18 },
+  title: { ...type.title, marginBottom: space.sm },
+  body: { ...type.body, marginBottom: space.sm },
+  label: { ...type.label, marginTop: space.lg, marginBottom: 6 },
   input: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-    borderRadius: 12,
-    color: '#fff',
+    backgroundColor: color.ink2,
+    borderWidth: 1.5,
+    borderColor: color.lineStrong,
+    borderRadius: radius.md,
+    color: color.cream,
+    fontFamily: font.body,
     fontSize: 16,
     paddingHorizontal: 14,
-    minHeight: 48,
+    minHeight: 50,
   },
-  dateRow: { flexDirection: 'row', gap: 8 },
+  dateRow: { flexDirection: 'row', gap: space.sm },
   dateShort: { flex: 1 },
   dateLong: { flex: 1.6 },
-  small: { color: 'rgba(255,255,255,0.45)', fontSize: 12, marginTop: 6 },
-  error: { color: '#FF8A8A', fontSize: 14, marginTop: 16, lineHeight: 20 },
-  notice: { color: '#9BE7B4', fontSize: 14, marginTop: 16, lineHeight: 20 },
-  primary: { backgroundColor: '#E91E8C', borderRadius: 12, minHeight: 50, alignItems: 'center', justifyContent: 'center', marginTop: 24 },
-  primaryText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  links: { marginTop: 20, gap: 12, alignItems: 'center' },
-  link: { color: 'rgba(255,255,255,0.65)', fontSize: 14, textDecorationLine: 'underline' },
+  small: { ...type.small, marginTop: 6 },
+  error: { fontFamily: font.medium, color: color.danger, fontSize: 14, marginTop: space.lg, lineHeight: 20 },
+  notice: { fontFamily: font.medium, color: color.ok, fontSize: 14, marginTop: space.lg, lineHeight: 20 },
+  primary: { backgroundColor: color.red, borderRadius: radius.md, minHeight: 52, alignItems: 'center', justifyContent: 'center', marginTop: space.xl },
+  primaryText: { fontFamily: font.bold, color: color.cream, fontSize: 16 },
+  links: { marginTop: space.xl, gap: space.md, alignItems: 'center' },
+  link: { fontFamily: font.medium, color: color.creamDim, fontSize: 14, textDecorationLine: 'underline' },
 });
 
 const styles = authStyles;

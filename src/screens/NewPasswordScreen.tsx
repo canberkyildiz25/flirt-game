@@ -3,6 +3,7 @@ import { ActivityIndicator, Text, TextInput, TouchableOpacity, View } from 'reac
 import { supabase } from '../services/supabase';
 import { useAuth } from '../store/authStore';
 import { authStyles as styles } from './AuthScreen';
+import { color } from '../theme';
 
 // Şifre sıfırlama bağlantısından gelindiğinde açılır.
 export default function NewPasswordScreen() {
@@ -33,7 +34,7 @@ export default function NewPasswordScreen() {
         secureTextEntry
         autoComplete="new-password"
         placeholder="En az 8 karakter"
-        placeholderTextColor="rgba(255,255,255,0.3)"
+        placeholderTextColor={color.creamFaint}
         onSubmitEditing={save}
       />
       {error && <Text style={styles.error}>{error}</Text>}

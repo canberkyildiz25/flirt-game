@@ -10,11 +10,12 @@ import { characterFromRow } from '../data/customCharacters';
 import { authHeader } from '../services/aiService';
 import { useAuth } from '../store/authStore';
 import { useGameStore } from '../store/gameStore';
+import { Button, Chip } from '../components/ui';
+import { color, font, radius, space, type } from '../theme';
 
 type Nav = StackNavigationProp<RootStackParamList, 'Create'>;
 
 const API_URL = `${process.env.EXPO_PUBLIC_API_URL ?? ''}/api/characters`;
-const ACCENT = '#E91E8C';
 
 const ERRORS: Record<string, string> = {
   daily_limit: 'Bugün en fazla 3 karakter oluşturabilirsin. Yarın yine dene.',
@@ -29,20 +30,9 @@ function Chips({
 }: { options: Option[]; selected: string[]; onToggle: (id: string) => void }) {
   return (
     <View style={styles.chips}>
-      {options.map((o) => {
-        const on = selected.includes(o.id);
-        return (
-          <TouchableOpacity
-            key={o.id}
-            accessibilityRole="checkbox"
-            aria-checked={on}
-            onPress={() => onToggle(o.id)}
-            style={[styles.chip, on && styles.chipOn]}
-          >
-            <Text style={[styles.chipText, on && styles.chipTextOn]}>{o.label}</Text>
-          </TouchableOpacity>
-        );
-      })}
+      {options.map((o) => (
+        <Chip key={o.id} label={o.label} selected={selected.includes(o.id)} onPress={() => onToggle(o.id)} />
+      ))}
     </View>
   );
 }
@@ -117,7 +107,7 @@ export default function CreateCharacterScreen() {
         onChangeText={setName}
         maxLength={20}
         placeholder="Örneğin Defne"
-        placeholderTextColor="rgba(255,255,255,0.3)"
+        placeholderTextColor={color.creamFaint}
       />
 
       <Text style={styles.label}>Yaşı: {age}</Text>
@@ -159,70 +149,51 @@ export default function CreateCharacterScreen() {
         maxLength={240}
         multiline
         placeholder="Nerede yaşıyor, neyi seviyor?"
-        placeholderTextColor="rgba(255,255,255,0.3)"
+        placeholderTextColor={color.creamFaint}
       />
       <Text style={styles.small}>{bio.length}/240</Text>
 
       {error && <Text style={styles.error} accessibilityLiveRegion="polite">{error}</Text>}
 
-      <TouchableOpacity
-        accessibilityRole="button"
-        style={[styles.primary, (!ready || busy) && styles.primaryDim]}
-        onPress={create}
+      <Button
+        label={busy ? 'Portre hazırlanıyor, 20 saniye kadar sürer' : session ? 'Kartı oluştur' : 'Oluşturmak için kayıt ol'}
+        icon={busy ? undefined : 'spark'}
+        busy={false}
         disabled={busy}
-      >
-        {busy ? (
-          <View style={styles.busyRow}>
-            <ActivityIndicator color="#fff" />
-            <Text style={styles.primaryText}>Portre hazırlanıyor, 20 saniye kadar sürer</Text>
-          </View>
-        ) : (
-          <Text style={styles.primaryText}>{session ? 'Oluştur' : 'Oluşturmak için kayıt ol'}</Text>
-        )}
-      </TouchableOpacity>
+        onPress={create}
+        style={[styles.primary, !ready && { opacity: 0.6 }]}
+      />
+      {busy && <ActivityIndicator color={color.butter} style={{ marginTop: space.md }} />}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0a0015' },
-  content: { padding: 24, paddingTop: 56, paddingBottom: 48 },
-  title: { color: '#fff', fontSize: 30, fontWeight: '800', marginBottom: 8 },
-  body: { color: 'rgba(255,255,255,0.7)', fontSize: 15, lineHeight: 22 },
-  label: { color: 'rgba(255,255,255,0.8)', fontSize: 14, fontWeight: '600', marginTop: 22, marginBottom: 10 },
+  root: { flex: 1, backgroundColor: color.ink },
+  content: { padding: space.xl, paddingTop: 56, paddingBottom: 48 },
+  title: { ...type.title, marginBottom: space.sm },
+  body: { ...type.body },
+  label: { ...type.label, marginTop: space.xl, marginBottom: space.md },
   input: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-    borderRadius: 12,
-    color: '#fff',
+    backgroundColor: color.ink2,
+    borderWidth: 1.5,
+    borderColor: color.lineStrong,
+    borderRadius: radius.md,
+    color: color.cream,
+    fontFamily: font.body,
     fontSize: 16,
     paddingHorizontal: 14,
-    minHeight: 48,
+    minHeight: 50,
   },
   bio: { minHeight: 90, paddingTop: 12, textAlignVertical: 'top' },
-  small: { color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 6, textAlign: 'right' },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
-    paddingHorizontal: 14,
-    minHeight: 38,
-    justifyContent: 'center',
-    borderRadius: 19,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.16)',
-  },
-  chipOn: { backgroundColor: ACCENT, borderColor: ACCENT },
-  chipText: { color: 'rgba(255,255,255,0.8)', fontSize: 14 },
-  chipTextOn: { color: '#fff', fontWeight: '700' },
-  stepper: { flexDirection: 'row', gap: 10 },
+  small: { ...type.small, marginTop: 6, textAlign: 'right' },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  stepper: { flexDirection: 'row', gap: space.md },
   stepButton: {
-    width: 48, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    width: 52, height: 46, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: color.ink2, borderWidth: 1.5, borderColor: color.lineStrong,
   },
-  stepText: { color: '#fff', fontSize: 20, fontWeight: '700' },
-  error: { color: '#FF8A8A', fontSize: 14, marginTop: 18, lineHeight: 20 },
-  primary: { backgroundColor: ACCENT, borderRadius: 12, minHeight: 52, alignItems: 'center', justifyContent: 'center', marginTop: 24, paddingHorizontal: 16 },
-  primaryDim: { opacity: 0.6 },
-  primaryText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  busyRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  stepText: { fontFamily: font.display, color: color.cream, fontSize: 18 },
+  error: { fontFamily: font.medium, color: color.danger, fontSize: 14, marginTop: space.lg, lineHeight: 20 },
+  primary: { marginTop: space.xl },
 });

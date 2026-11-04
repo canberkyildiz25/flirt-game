@@ -1,24 +1,33 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useGameStore } from '../store/gameStore';
 import { RootStackParamList } from '../types';
 import { navigationRef } from './ref';
 import { signOut, useAuth } from '../store/authStore';
 import { supabase } from '../services/supabase';
+import Icon, { IconName } from '../components/Icon';
+import { Button, CoinPill } from '../components/ui';
+import { color, font, radius, space } from '../theme';
 
 type Destination = 'Home' | 'Characters' | 'Create' | 'Conversations';
 
-const ITEMS: { route: Destination; label: string }[] = [
-  { route: 'Home', label: 'Ana sayfa' },
-  { route: 'Characters', label: 'Karakterler' },
-  { route: 'Create', label: 'Karakter oluştur' },
-  { route: 'Conversations', label: 'Sohbetlerim' },
+const ITEMS: { route: Destination; label: string; icon: IconName }[] = [
+  { route: 'Home', label: 'Ana sayfa', icon: 'home' },
+  { route: 'Characters', label: 'Kartlar', icon: 'cards' },
+  { route: 'Create', label: 'Karakter yarat', icon: 'plus' },
+  { route: 'Conversations', label: 'Sohbetlerim', icon: 'chat' },
 ];
 
-// Geniş ekranda soldaki sabit menü. Profil ve sohbet, açıldıkları listenin altında sayılır.
+// Profil ve sohbet, açıldıkları listenin altında sayılır.
 const PARENT: Partial<Record<keyof RootStackParamList, Destination>> = {
   CharacterProfile: 'Characters',
   Chat: 'Conversations',
+};
+
+const go = (route: Destination | 'Auth') => {
+  if (!navigationRef.isReady()) return;
+  if (route === 'Auth') navigationRef.navigate('Auth', { mode: 'login' });
+  else navigationRef.navigate(route);
 };
 
 export default function Sidebar({ current }: { current?: keyof RootStackParamList }) {
@@ -34,38 +43,36 @@ export default function Sidebar({ current }: { current?: keyof RootStackParamLis
         {ITEMS.map((item) => {
           const isActive = item.route === active;
           return (
-            <TouchableOpacity
+            <Pressable
               key={item.route}
               accessibilityRole="link"
               aria-selected={isActive}
-              onPress={() => navigationRef.isReady() && navigationRef.navigate(item.route)}
-              style={[styles.item, isActive && styles.itemActive]}
+              onPress={() => go(item.route)}
+              style={({ pressed }) => [styles.item, isActive && styles.itemActive, pressed && !isActive && styles.itemPressed]}
             >
+              <Icon name={item.icon} size={18} color={isActive ? color.ink : color.creamDim} />
               <Text style={[styles.itemText, isActive && styles.itemTextActive]}>{item.label}</Text>
-              {item.route === 'Conversations' && chats > 0 && <Text style={styles.count}>{chats}</Text>}
-            </TouchableOpacity>
+              {item.route === 'Conversations' && chats > 0 && (
+                <Text style={[styles.count, isActive && { color: color.ink }]}>{chats}</Text>
+              )}
+            </Pressable>
           );
         })}
       </View>
+
       <View style={styles.footer}>
+        <CoinPill amount={coins} />
         {supabase &&
           (session ? (
             <View style={styles.account}>
               <Text style={styles.email} numberOfLines={1}>{session.user.email}</Text>
-              <TouchableOpacity accessibilityRole="button" onPress={signOut}>
+              <Pressable accessibilityRole="button" onPress={signOut}>
                 <Text style={styles.accountLink}>Çıkış yap</Text>
-              </TouchableOpacity>
+              </Pressable>
             </View>
           ) : (
-            <TouchableOpacity
-              accessibilityRole="button"
-              style={styles.signIn}
-              onPress={() => navigationRef.isReady() && navigationRef.navigate('Auth', { mode: 'login' })}
-            >
-              <Text style={styles.signInText}>Giriş yap</Text>
-            </TouchableOpacity>
+            <Button label="Giriş yap" variant="reward" compact onPress={() => go('Auth')} />
           ))}
-        <Text style={styles.coins}>🪙 {coins}</Text>
         <Text style={styles.note}>Karakterler kurgusaldır, sohbetlere yapay zekâ cevap verir.</Text>
       </View>
     </View>
@@ -75,33 +82,31 @@ export default function Sidebar({ current }: { current?: keyof RootStackParamLis
 const styles = StyleSheet.create({
   root: {
     width: 232,
-    paddingTop: 32,
-    paddingHorizontal: 16,
-    paddingBottom: 24,
+    paddingTop: space.xxl,
+    paddingHorizontal: space.lg,
+    paddingBottom: space.xl,
     borderRightWidth: 1,
-    borderRightColor: 'rgba(255,255,255,0.06)',
-    backgroundColor: '#0d0019',
+    borderRightColor: color.line,
+    backgroundColor: '#140B10',
   },
-  logo: { color: '#fff', fontSize: 24, fontWeight: '800', paddingHorizontal: 12, marginBottom: 28 },
+  logo: { fontFamily: font.display, fontSize: 20, color: color.red, paddingHorizontal: space.md, marginBottom: space.xxl },
   nav: { gap: 4 },
   item: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    gap: space.md,
+    paddingHorizontal: space.md,
     minHeight: 44,
-    borderRadius: 10,
+    borderRadius: radius.md,
   },
-  itemActive: { backgroundColor: 'rgba(233,30,140,0.14)' },
-  itemText: { color: 'rgba(255,255,255,0.7)', fontSize: 15 },
-  itemTextActive: { color: '#fff', fontWeight: '700' },
-  count: { color: '#E91E8C', fontSize: 13, fontWeight: '700' },
-  footer: { marginTop: 'auto', paddingHorizontal: 12, gap: 10 },
-  account: { gap: 4 },
-  email: { color: 'rgba(255,255,255,0.8)', fontSize: 13 },
-  accountLink: { color: 'rgba(255,255,255,0.55)', fontSize: 13, textDecorationLine: 'underline' },
-  signIn: { backgroundColor: '#E91E8C', borderRadius: 10, minHeight: 40, alignItems: 'center', justifyContent: 'center' },
-  signInText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  coins: { color: '#FFD700', fontSize: 15, fontWeight: '700' },
-  note: { color: 'rgba(255,255,255,0.45)', fontSize: 12, lineHeight: 17 },
+  itemActive: { backgroundColor: color.cream },
+  itemPressed: { backgroundColor: color.ink3 },
+  itemText: { flex: 1, fontFamily: font.medium, fontSize: 15, color: color.creamDim },
+  itemTextActive: { fontFamily: font.bold, color: color.ink },
+  count: { fontFamily: font.bold, fontSize: 13, color: color.butter },
+  footer: { marginTop: 'auto', gap: space.md, alignItems: 'flex-start' },
+  account: { gap: 4, alignSelf: 'stretch' },
+  email: { fontFamily: font.body, fontSize: 13, color: color.creamDim },
+  accountLink: { fontFamily: font.medium, fontSize: 13, color: color.creamFaint, textDecorationLine: 'underline' },
+  note: { fontFamily: font.body, fontSize: 12, lineHeight: 17, color: color.creamFaint },
 });

@@ -1,11 +1,12 @@
 import React from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useGameStore } from '../store/gameStore';
 import { RootStackParamList } from '../types';
 import Portrait from '../components/Portrait';
+import { Button, HeartMeter, STAGE_LABELS as LABELS } from '../components/ui';
+import { color, font, radius, space, type } from '../theme';
 
 type Nav = StackNavigationProp<RootStackParamList, 'Conversations'>;
 
@@ -38,19 +39,13 @@ export default function ConversationsScreen() {
     .sort((a, b) => b.conversation.updatedAt - a.conversation.updatedAt);
 
   return (
-    <LinearGradient colors={['#0a0015', '#1a0030']} style={styles.container}>
+    <View style={styles.container}>
       <View style={styles.inner}>
         <Text style={styles.title}>Sohbetlerim</Text>
         {rows.length === 0 ? (
           <View style={styles.empty}>
             <Text style={styles.emptyText}>Henüz kimseyle konuşmadın.</Text>
-            <TouchableOpacity
-              accessibilityRole="button"
-              style={styles.emptyButton}
-              onPress={() => navigation.navigate('Characters')}
-            >
-              <Text style={styles.emptyButtonText}>Karakterlere bak</Text>
-            </TouchableOpacity>
+            <Button label="Kartlara bak" icon="cards" compact style={{ alignSelf: 'flex-start' }} onPress={() => navigation.navigate('Characters')} />
           </View>
         ) : (
           <FlatList
@@ -75,9 +70,10 @@ export default function ConversationsScreen() {
                       {last.isPlayer ? 'Sen: ' : ''}
                       {last.text}
                     </Text>
-                    <Text style={[styles.stage, { color: character.color }]}>
-                      {STAGE_LABELS[character.stage]} · {character.affection}/100
-                    </Text>
+                    <View style={styles.metaRow}>
+                      <Text style={styles.stage}>{LABELS[character.stage]}</Text>
+                      <HeartMeter value={character.affection} size={12} />
+                    </View>
                   </View>
                 </TouchableOpacity>
               );
@@ -85,40 +81,34 @@ export default function ConversationsScreen() {
           />
         )}
       </View>
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  inner: { flex: 1, width: '100%', maxWidth: 760, alignSelf: 'center', paddingTop: 60 },
-  title: { color: '#fff', fontSize: 32, fontWeight: '800', paddingHorizontal: 24, marginBottom: 16 },
-  list: { paddingHorizontal: 16, paddingBottom: 24 },
+  container: { flex: 1, backgroundColor: color.ink },
+  inner: { flex: 1, width: '100%', maxWidth: 760, alignSelf: 'center', paddingTop: 56 },
+  title: { ...type.title, paddingHorizontal: space.xl, marginBottom: space.lg },
+  list: { paddingHorizontal: space.lg, paddingBottom: space.xl },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    padding: 12,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    marginBottom: 8,
+    padding: space.md,
+    borderRadius: radius.lg,
+    backgroundColor: color.ink2,
+    borderWidth: 1,
+    borderColor: color.line,
+    marginBottom: space.sm,
   },
-  avatar: { width: 56, height: 56, borderRadius: 28 },
+  avatar: { width: 56, height: 56, borderRadius: 28, borderWidth: 2, borderColor: color.cream },
   rowText: { flex: 1, minWidth: 0 },
   rowTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  name: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  time: { color: 'rgba(255,255,255,0.45)', fontSize: 12 },
-  preview: { color: 'rgba(255,255,255,0.7)', fontSize: 14, marginTop: 2 },
-  stage: { fontSize: 12, marginTop: 4 },
-  empty: { paddingHorizontal: 24, paddingTop: 24 },
-  emptyText: { color: 'rgba(255,255,255,0.7)', fontSize: 16, marginBottom: 16 },
-  emptyButton: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#E91E8C',
-    borderRadius: 12,
-    paddingHorizontal: 18,
-    minHeight: 44,
-    justifyContent: 'center',
-  },
-  emptyButtonText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  name: { fontFamily: font.displayMedium, fontSize: 15, color: color.cream },
+  time: { fontFamily: font.body, fontSize: 12, color: color.creamFaint },
+  preview: { fontFamily: font.body, fontSize: 14, color: color.creamDim, marginTop: 2 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: 6 },
+  stage: { fontFamily: font.bold, fontSize: 12, color: color.butter },
+  empty: { paddingHorizontal: space.xl, paddingTop: space.xl, gap: space.lg },
+  emptyText: { ...type.body },
 });

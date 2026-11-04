@@ -3,7 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
+  Pressable,
   ScrollView,
   Animated,
   TextInput,
@@ -11,7 +11,6 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useGameStore } from '../store/gameStore';
 import { RootStackParamList, StoredMessage } from '../types';
@@ -20,6 +19,9 @@ import { getAiResponse, AiMessage } from '../services/aiService';
 import Portrait from '../components/Portrait';
 import { useAuth } from '../store/authStore';
 import { supabase } from '../services/supabase';
+import Icon from '../components/Icon';
+import { Button, HeartMeter, IconButton, STAGE_LABELS } from '../components/ui';
+import { color, font, radius, space, type } from '../theme';
 
 const OPENING_CUE = '(Oyuncu sohbeti az önce açtı. İlk mesajı karakter olarak sen yaz.)';
 
@@ -104,7 +106,7 @@ export default function ChatScreen() {
         { role: 'assistant', content: text },
       ]);
     } catch (e) {
-      setMessages([{ id: `ai-err-${Date.now()}`, text: '⚠️ Bağlanılamadı, sen yazarak başlayabilirsin.', isPlayer: false }]);
+      setMessages([{ id: `ai-err-${Date.now()}`, text: 'Bağlanılamadı, sen yazarak başlayabilirsin.', isPlayer: false }]);
     } finally {
       setIsAiLoading(false);
     }
@@ -145,7 +147,7 @@ export default function ChatScreen() {
     } catch (e) {
       const errMsg: ChatMessage = {
         id: `ai-err-${Date.now()}`,
-        text: '⚠️ Bir hata oluştu, tekrar dene.',
+        text: 'Mesaj gitmedi, tekrar dene.',
         isPlayer: false,
       };
       setMessages((prev) => [...prev, errMsg]);
@@ -155,334 +157,196 @@ export default function ChatScreen() {
     }
   }
 
+  const back = () => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Conversations'));
+
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <LinearGradient colors={['#0a0015', '#1a0030']} style={styles.container}>
-        {/* Header */}
-        <LinearGradient colors={['#1a0030', '#0a0015']} style={styles.header}>
-          <TouchableOpacity
-            onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Conversations'))}
-            style={styles.backBtn}
-          >
-            <Text style={styles.backIcon}>←</Text>
-          </TouchableOpacity>
-          <Portrait character={character} style={styles.headerAvatar} />
-          <View style={styles.headerInfo}>
-            <Text style={styles.headerName}>{character.name}</Text>
-            <View style={styles.onlineRow}>
-              <View style={[styles.onlineDot, { backgroundColor: character.color }]} />
-              <Text style={styles.onlineText}>
-                Yapay zekâ ile sohbet
-              </Text>
-            </View>
-          </View>
-          <TouchableOpacity
-            onPress={restartConversation}
-            accessibilityRole="button"
-            accessibilityLabel="Sohbeti baştan başlat"
-            style={styles.restartBtn}
-          >
-            <Text style={styles.restartText}>Baştan başla</Text>
-          </TouchableOpacity>
-          <View style={styles.affectionBadge}>
-            <Text style={styles.affectionEmoji}>💝</Text>
-            <Text style={[styles.affectionBadgeText, { color: character.color }]}>
-              {character.affection}
-            </Text>
-          </View>
-        </LinearGradient>
-
-        {/* Messages */}
-        <ScrollView
-          ref={scrollRef}
-          style={styles.messagesContainer}
-          contentContainerStyle={styles.messagesContent}
-          showsVerticalScrollIndicator={false}
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <View style={styles.header}>
+        <IconButton icon="back" label="Geri" onPress={back} />
+        <Pressable
+          accessibilityRole="link"
+          accessibilityLabel={`${character.name} profili`}
+          onPress={() => navigation.navigate('CharacterProfile', { characterId: character.id })}
+          style={styles.who}
         >
-          {messages.map((msg) => (
+          <Portrait character={character} style={styles.headerAvatar} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.headerName} numberOfLines={1}>{character.name}</Text>
+            <View style={styles.headerMeta}>
+              <Text style={styles.headerStage}>{STAGE_LABELS[character.stage]}</Text>
+              <HeartMeter value={character.affection} size={12} />
+            </View>
+          </View>
+        </Pressable>
+        <IconButton icon="restart" label="Sohbeti baştan başlat" onPress={restartConversation} />
+      </View>
+
+      <ScrollView
+        ref={scrollRef}
+        style={styles.messages}
+        contentContainerStyle={styles.messagesContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.disclosure}>{character.name} kurgusal bir karakter; cevaplarını yapay zekâ yazar.</Text>
+        {messages.map((msg) => (
+          <View key={msg.id} style={[styles.row, msg.isPlayer && styles.rowPlayer]}>
+            {!msg.isPlayer && <Portrait character={character} style={styles.smallAvatar} />}
             <View
-              key={msg.id}
-              style={[styles.bubbleRow, msg.isPlayer && styles.playerRow]}
+              style={[
+                styles.bubble,
+                msg.isPlayer ? styles.bubblePlayer : styles.bubbleCharacter,
+                isError(msg) && styles.bubbleError,
+              ]}
             >
-              {!msg.isPlayer && (
-                <Portrait character={character} style={styles.smallAvatar} />
-              )}
-              <View
-                style={[
-                  styles.bubble,
-                  msg.isPlayer
-                    ? [styles.playerBubble, { backgroundColor: character.color }]
-                    : [styles.characterBubble, { borderColor: character.color + '44' }],
-                ]}
-              >
-                <Text style={styles.bubbleText}>{msg.text}</Text>
-                {msg.isPlayer && msg.affectionChange !== undefined && msg.affectionChange !== 0 && (
-                  <Text style={styles.affectionHint}>
-                    {msg.affectionChange > 0 ? `+${msg.affectionChange} 💕` : `${msg.affectionChange} 💔`}
+              <Text style={[styles.bubbleText, msg.isPlayer && styles.bubbleTextPlayer]}>{msg.text}</Text>
+              {msg.isPlayer && !!msg.affectionChange && (
+                <View style={styles.delta}>
+                  <Icon name={msg.affectionChange > 0 ? 'heart' : 'heartOutline'} size={11} color={color.butterInk} />
+                  <Text style={styles.deltaText}>
+                    {msg.affectionChange > 0 ? `+${msg.affectionChange}` : msg.affectionChange}
                   </Text>
-                )}
-              </View>
-            </View>
-          ))}
-
-          {isAiLoading && (
-            <View style={styles.bubbleRow}>
-              <Portrait character={character} style={styles.smallAvatar} />
-              <View style={[styles.bubble, styles.characterBubble, { borderColor: character.color + '44' }]}>
-                <ActivityIndicator size="small" color={character.color} />
-              </View>
-            </View>
-          )}
-        </ScrollView>
-
-        {/* Affection Toast */}
-        {affectionToast !== null && (
-          <Animated.View style={[styles.toast, { opacity: toastOpacity }]}>
-            <Text style={[
-              styles.toastText,
-              { color: affectionToast > 0 ? '#ff69b4' : '#ff4444' },
-            ]}>
-              {affectionToast > 0 ? `+${affectionToast} 💕` : `${affectionToast} 💔`}
-            </Text>
-          </Animated.View>
-        )}
-
-        {needsLogin && (
-          <View style={styles.loginPrompt}>
-            <Text style={styles.loginText}>{character.name} ile sohbet etmek için giriş yap.</Text>
-            <TouchableOpacity
-              accessibilityRole="button"
-              style={[styles.loginButton, { backgroundColor: character.color }]}
-              onPress={() => navigation.navigate('Auth', { mode: 'login' })}
-            >
-              <Text style={styles.loginButtonText}>Giriş yap</Text>
-            </TouchableOpacity>
-            <TouchableOpacity accessibilityRole="button" onPress={() => navigation.navigate('Auth', { mode: 'signup' })}>
-              <Text style={styles.loginLink}>Hesabın yok mu? Kayıt ol</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* AI Free Chat Input */}
-        {!needsLogin && (
-          <View style={styles.aiInputContainer}>
-            <TextInput
-              style={[styles.aiInput, { borderColor: character.color + '66' }]}
-              placeholder={`${character.name}'e bir şey yaz...`}
-              placeholderTextColor="rgba(255,255,255,0.3)"
-              value={inputText}
-              onChangeText={setInputText}
-              onSubmitEditing={handleAiSend}
-              returnKeyType="send"
-              multiline={false}
-              editable={!isAiLoading}
-            />
-            <TouchableOpacity
-              style={[styles.sendButton, { backgroundColor: character.color }]}
-              onPress={handleAiSend}
-              disabled={isAiLoading || !inputText.trim()}
-              activeOpacity={0.8}
-            >
-              {isAiLoading ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Text style={styles.sendIcon}>➤</Text>
+                </View>
               )}
-            </TouchableOpacity>
+            </View>
+          </View>
+        ))}
+
+        {isAiLoading && (
+          <View style={styles.row}>
+            <Portrait character={character} style={styles.smallAvatar} />
+            <View style={[styles.bubble, styles.bubbleCharacter]}>
+              <ActivityIndicator size="small" color={color.creamDim} />
+            </View>
           </View>
         )}
-      </LinearGradient>
+      </ScrollView>
+
+      {affectionToast !== null && (
+        <Animated.View style={[styles.toast, { opacity: toastOpacity }]} pointerEvents="none">
+          <Icon name={affectionToast > 0 ? 'heart' : 'heartOutline'} size={16} color={affectionToast > 0 ? color.red : color.creamDim} />
+          <Text style={styles.toastText}>{affectionToast > 0 ? `+${affectionToast}` : affectionToast}</Text>
+        </Animated.View>
+      )}
+
+      {needsLogin ? (
+        <View style={styles.loginPrompt}>
+          <Text style={type.bodyStrong}>{character.name} seni bekliyor.</Text>
+          <Text style={[type.small, { textAlign: 'center' }]}>Sohbet etmek için giriş yap ya da ücretsiz kayıt ol.</Text>
+          <View style={styles.loginButtons}>
+            <Button label="Giriş yap" compact onPress={() => navigation.navigate('Auth', { mode: 'login' })} />
+            <Button label="Kayıt ol" compact variant="ghost" onPress={() => navigation.navigate('Auth', { mode: 'signup' })} />
+          </View>
+        </View>
+      ) : (
+        <View style={styles.composer}>
+          <TextInput
+            style={styles.input}
+            placeholder="Bir şey yaz…"
+            placeholderTextColor={color.creamFaint}
+            value={inputText}
+            onChangeText={setInputText}
+            onSubmitEditing={handleAiSend}
+            returnKeyType="send"
+            editable={!isAiLoading}
+            maxLength={1000}
+          />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Gönder"
+            onPress={handleAiSend}
+            disabled={isAiLoading || !inputText.trim()}
+            style={({ pressed }) => [
+              styles.send,
+              (isAiLoading || !inputText.trim()) && { opacity: 0.4 },
+              pressed && { transform: [{ translateY: 1 }] },
+            ]}
+          >
+            <Icon name="send" size={20} color={color.cream} />
+          </Pressable>
+        </View>
+      )}
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1, backgroundColor: color.ink },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 56,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-    gap: 12,
+    gap: space.md,
+    paddingTop: 48,
+    paddingBottom: space.md,
+    paddingHorizontal: space.lg,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.06)',
+    borderBottomColor: color.line,
   },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backIcon: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  loginPrompt: {
-    padding: 20,
-    gap: 12,
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.06)',
-  },
-  loginText: { color: 'rgba(255,255,255,0.8)', fontSize: 15, textAlign: 'center' },
-  loginButton: { borderRadius: 12, minHeight: 46, paddingHorizontal: 28, justifyContent: 'center' },
-  loginButtonText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  loginLink: { color: 'rgba(255,255,255,0.6)', fontSize: 14, textDecorationLine: 'underline' },
-  restartBtn: {
-    paddingHorizontal: 10,
-    minHeight: 32,
-    justifyContent: 'center',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
-  },
-  restartText: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 12,
-  },
-  headerAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-  },
-  headerInfo: {
-    flex: 1,
-  },
-  headerName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  onlineRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 2,
-  },
-  onlineDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  onlineText: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.5)',
-  },
-  affectionBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-  },
-  affectionEmoji: {
-    fontSize: 14,
-  },
-  affectionBadgeText: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  messagesContainer: {
-    flex: 1,
-  },
-  messagesContent: {
-    padding: 16,
-    gap: 12,
-    paddingBottom: 24,
-  },
-  bubbleRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 8,
-    maxWidth: '85%',
-  },
-  playerRow: {
-    alignSelf: 'flex-end',
-    flexDirection: 'row-reverse',
-  },
-  smallAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-  },
-  bubble: {
-    flexShrink: 1,
-    padding: 12,
-    borderRadius: 16,
-  },
-  characterBubble: {
-    backgroundColor: 'rgba(255,255,255,0.07)',
-    borderWidth: 1,
-    borderTopLeftRadius: 4,
-  },
-  playerBubble: {
-    borderTopRightRadius: 4,
-  },
-  bubbleText: {
-    fontSize: 15,
-    color: '#FFFFFF',
-    lineHeight: 21,
-  },
-  affectionHint: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.6)',
-    marginTop: 4,
-    textAlign: 'right',
-  },
+  who: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.md, minWidth: 0 },
+  headerAvatar: { width: 44, height: 44, borderRadius: 22, borderWidth: 2, borderColor: color.cream },
+  headerName: { fontFamily: font.displayMedium, fontSize: 16, color: color.cream },
+  headerMeta: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: 2 },
+  headerStage: { fontFamily: font.bold, fontSize: 12, color: color.butter },
+  messages: { flex: 1 },
+  messagesContent: { padding: space.lg, gap: space.md },
+  disclosure: { ...type.small, textAlign: 'center', marginBottom: space.sm },
+  row: { flexDirection: 'row', alignItems: 'flex-end', gap: space.sm, maxWidth: '85%' },
+  rowPlayer: { alignSelf: 'flex-end', flexDirection: 'row-reverse' },
+  smallAvatar: { width: 30, height: 30, borderRadius: 15 },
+  bubble: { flexShrink: 1, paddingHorizontal: 14, paddingVertical: 10, borderRadius: radius.lg },
+  bubbleCharacter: { backgroundColor: color.ink2, borderWidth: 1.5, borderColor: color.lineStrong, borderBottomLeftRadius: 6 },
+  bubblePlayer: { backgroundColor: color.butter, borderBottomRightRadius: 6 },
+  bubbleError: { borderColor: color.danger },
+  bubbleText: { fontFamily: font.body, fontSize: 15, lineHeight: 22, color: color.cream },
+  bubbleTextPlayer: { color: color.butterInk },
+  delta: { flexDirection: 'row', alignItems: 'center', gap: 3, alignSelf: 'flex-end', marginTop: 4 },
+  deltaText: { fontFamily: font.bold, fontSize: 11, color: color.butterInk },
   toast: {
     position: 'absolute',
-    top: 120,
     alignSelf: 'center',
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  toastText: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  aiInputContainer: {
+    bottom: 96,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    paddingBottom: Platform.OS === 'ios' ? 28 : 12,
-    gap: 10,
+    gap: 6,
+    paddingHorizontal: 14,
+    minHeight: 34,
+    borderRadius: radius.pill,
+    backgroundColor: color.cream,
+  },
+  toastText: { fontFamily: font.display, fontSize: 14, color: color.ink },
+  loginPrompt: {
+    padding: space.xl,
+    gap: space.sm,
+    alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.06)',
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    borderTopColor: color.line,
   },
-  aiInput: {
+  loginButtons: { flexDirection: 'row', gap: space.md, marginTop: space.sm },
+  composer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    padding: space.md,
+    borderTopWidth: 1,
+    borderTopColor: color.line,
+  },
+  input: {
     flex: 1,
-    height: 44,
-    borderWidth: 1,
-    borderRadius: 22,
-    paddingHorizontal: 16,
-    color: '#FFFFFF',
+    minHeight: 48,
+    borderRadius: radius.pill,
+    paddingHorizontal: space.lg,
+    backgroundColor: color.ink2,
+    borderWidth: 1.5,
+    borderColor: color.lineStrong,
+    color: color.cream,
+    fontFamily: font.body,
     fontSize: 15,
-    backgroundColor: 'rgba(255,255,255,0.07)',
   },
-  sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  send: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: color.red,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  sendIcon: {
-    color: '#fff',
-    fontSize: 18,
-    marginLeft: 2,
   },
 });

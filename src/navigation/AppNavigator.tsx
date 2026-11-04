@@ -18,7 +18,7 @@ const Stack = createStackNavigator<RootStackParamList>();
 function centered(Screen: React.ComponentType) {
   return function Centered() {
     return (
-      <View style={{ flex: 1, backgroundColor: '#0a0015' }}>
+      <View style={{ flex: 1, backgroundColor: '#1A0F14' }}>
         <View style={{ flex: 1, width: '100%', maxWidth: 760, alignSelf: 'center' }}>
           <Screen />
         </View>
@@ -45,7 +45,7 @@ export default function AppNavigator({ onRouteChange }: Props) {
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
-          cardStyle: { backgroundColor: '#0a0015' },
+          cardStyle: { backgroundColor: '#1A0F14' },
         }}
       >
         <Stack.Screen name="Home" component={Home} />
