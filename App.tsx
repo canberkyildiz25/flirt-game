@@ -1,5 +1,5 @@
 import 'react-native-gesture-handler';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
 import AppNavigator from './src/navigation/AppNavigator';
@@ -8,11 +8,18 @@ import { useGameStore } from './src/store/gameStore';
 import Sidebar from './src/navigation/Sidebar';
 import { useLayout } from './src/navigation/layout';
 import { RootStackParamList } from './src/types';
+import { initAuth, useAuth } from './src/store/authStore';
+import NewPasswordScreen from './src/screens/NewPasswordScreen';
 
 export default function App() {
   const isAdultConfirmed = useGameStore((s) => s.isAdultConfirmed);
   const { isWide } = useLayout();
   const [route, setRoute] = useState<keyof RootStackParamList>();
+  const recovering = useAuth((s) => s.recovering);
+
+  useEffect(initAuth, []);
+
+  if (recovering) return <NewPasswordScreen />;
 
   return (
     <>

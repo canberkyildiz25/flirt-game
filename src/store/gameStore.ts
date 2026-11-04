@@ -22,6 +22,18 @@ function getStageFromAffection(affection: number): RelationshipStage {
   return 'stranger';
 }
 
+export interface GameSnapshot {
+  characters: Character[];
+  coins: number;
+  conversations: Record<string, Conversation>;
+}
+
+interface ServerState {
+  coins?: number;
+  progress: { character_id: string; affection: number; stage: string; is_unlocked: boolean }[];
+  conversations: { character_id: string; messages: Conversation['messages']; history: Conversation['history']; updated_at: string }[];
+}
+
 // Kilitli karakterleri açmak için coin maliyeti
 export const UNLOCK_COST = 80;
 
@@ -46,6 +58,8 @@ interface GameState {
   spendCoins: (amount: number) => boolean;
   setLastPlayed: (id: string) => void;
   confirmAdult: () => void;
+  applyServerState: (server: ServerState) => void;
+  resetProgress: () => void;
 }
 
 export const useGameStore = create<GameState>()(
@@ -111,6 +125,28 @@ export const useGameStore = create<GameState>()(
       setLastPlayed: (id) => set({ lastPlayedCharacterId: id }),
 
       confirmAdult: () => set({ isAdultConfirmed: true }),
+
+      // Hesaptaki kayıt cihazdakinin yerine geçer.
+      applyServerState: ({ coins, progress, conversations }) =>
+        set((state) => ({
+          coins: coins ?? state.coins,
+          characters: CHARACTERS.map((c) => {
+            const row = progress.find((p) => p.character_id === c.id);
+            return row
+              ? { ...c, affection: row.affection, stage: getStageFromAffection(row.affection), isUnlocked: row.is_unlocked }
+              : c;
+          }),
+          conversations: Object.fromEntries(
+            conversations.map((row) => [
+              row.character_id,
+              { messages: row.messages, history: row.history, updatedAt: Date.parse(row.updated_at) },
+            ])
+          ),
+        })),
+
+      // Çıkışta cihazdaki ilerleme silinir; bir sonraki kişi görmesin.
+      resetProgress: () =>
+        set({ characters: CHARACTERS, coins: 50, conversations: {}, lastPlayedCharacterId: null }),
     }),
     {
       name: 'flirt-game-v1',

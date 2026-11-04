@@ -3,6 +3,8 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useGameStore } from '../store/gameStore';
 import { RootStackParamList } from '../types';
 import { navigationRef } from './ref';
+import { signOut, useAuth } from '../store/authStore';
+import { supabase } from '../services/supabase';
 
 type Destination = 'Home' | 'Characters' | 'Conversations';
 
@@ -22,6 +24,7 @@ export default function Sidebar({ current }: { current?: keyof RootStackParamLis
   const coins = useGameStore((s) => s.coins);
   const chats = useGameStore((s) => Object.keys(s.conversations).length);
   const active = current ? PARENT[current] ?? current : 'Home';
+  const session = useAuth((s) => s.session);
 
   return (
     <View style={styles.root}>
@@ -44,6 +47,23 @@ export default function Sidebar({ current }: { current?: keyof RootStackParamLis
         })}
       </View>
       <View style={styles.footer}>
+        {supabase &&
+          (session ? (
+            <View style={styles.account}>
+              <Text style={styles.email} numberOfLines={1}>{session.user.email}</Text>
+              <TouchableOpacity accessibilityRole="button" onPress={signOut}>
+                <Text style={styles.accountLink}>Çıkış yap</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              accessibilityRole="button"
+              style={styles.signIn}
+              onPress={() => navigationRef.isReady() && navigationRef.navigate('Auth', { mode: 'login' })}
+            >
+              <Text style={styles.signInText}>Giriş yap</Text>
+            </TouchableOpacity>
+          ))}
         <Text style={styles.coins}>🪙 {coins}</Text>
         <Text style={styles.note}>Karakterler kurgusaldır, sohbetlere yapay zekâ cevap verir.</Text>
       </View>
@@ -76,6 +96,11 @@ const styles = StyleSheet.create({
   itemTextActive: { color: '#fff', fontWeight: '700' },
   count: { color: '#E91E8C', fontSize: 13, fontWeight: '700' },
   footer: { marginTop: 'auto', paddingHorizontal: 12, gap: 10 },
+  account: { gap: 4 },
+  email: { color: 'rgba(255,255,255,0.8)', fontSize: 13 },
+  accountLink: { color: 'rgba(255,255,255,0.55)', fontSize: 13, textDecorationLine: 'underline' },
+  signIn: { backgroundColor: '#E91E8C', borderRadius: 10, minHeight: 40, alignItems: 'center', justifyContent: 'center' },
+  signInText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   coins: { color: '#FFD700', fontSize: 15, fontWeight: '700' },
   note: { color: 'rgba(255,255,255,0.45)', fontSize: 12, lineHeight: 17 },
 });

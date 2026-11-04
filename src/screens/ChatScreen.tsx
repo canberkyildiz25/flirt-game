@@ -18,6 +18,8 @@ import { RootStackParamList, StoredMessage } from '../types';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { getAiResponse, AiMessage } from '../services/aiService';
 import Portrait from '../components/Portrait';
+import { useAuth } from '../store/authStore';
+import { supabase } from '../services/supabase';
 
 const OPENING_CUE = '(Oyuncu sohbeti az önce açtı. İlk mesajı karakter olarak sen yaz.)';
 
@@ -41,16 +43,20 @@ export default function ChatScreen() {
   const saved = useGameStore((s) => s.conversations[characterId]);
   const saveConversation = useGameStore((s) => s.saveConversation);
   const clearConversation = useGameStore((s) => s.clearConversation);
+  const session = useAuth((s) => s.session);
+  const authReady = useAuth((s) => s.ready);
+  // Sohbet modele gittiği için giriş ister; Supabase kurulu değilse eski davranış sürer.
+  const needsLogin = !!supabase && authReady && !session;
 
   // Bu karakteri son oynanan olarak işaretle
   React.useEffect(() => {
     setLastPlayed(characterId);
-    if (saved?.messages.length) {
-      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: false }), 50);
-    } else {
-      openConversation();
-    }
+    if (saved?.messages.length) setTimeout(() => scrollRef.current?.scrollToEnd({ animated: false }), 50);
   }, []);
+
+  React.useEffect(() => {
+    if (authReady && !needsLogin && !messages.length && !isAiLoading) openConversation();
+  }, [authReady, needsLogin]);
 
   const [messages, setMessages] = useState<ChatMessage[]>(saved?.messages ?? []);
   const [affectionToast, setAffectionToast] = useState<number | null>(null);
@@ -244,8 +250,24 @@ export default function ChatScreen() {
           </Animated.View>
         )}
 
+        {needsLogin && (
+          <View style={styles.loginPrompt}>
+            <Text style={styles.loginText}>{character.name} ile sohbet etmek için giriş yap.</Text>
+            <TouchableOpacity
+              accessibilityRole="button"
+              style={[styles.loginButton, { backgroundColor: character.color }]}
+              onPress={() => navigation.navigate('Auth', { mode: 'login' })}
+            >
+              <Text style={styles.loginButtonText}>Giriş yap</Text>
+            </TouchableOpacity>
+            <TouchableOpacity accessibilityRole="button" onPress={() => navigation.navigate('Auth', { mode: 'signup' })}>
+              <Text style={styles.loginLink}>Hesabın yok mu? Kayıt ol</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* AI Free Chat Input */}
-        {(
+        {!needsLogin && (
           <View style={styles.aiInputContainer}>
             <TextInput
               style={[styles.aiInput, { borderColor: character.color + '66' }]}
@@ -304,6 +326,17 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
   },
+  loginPrompt: {
+    padding: 20,
+    gap: 12,
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.06)',
+  },
+  loginText: { color: 'rgba(255,255,255,0.8)', fontSize: 15, textAlign: 'center' },
+  loginButton: { borderRadius: 12, minHeight: 46, paddingHorizontal: 28, justifyContent: 'center' },
+  loginButtonText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  loginLink: { color: 'rgba(255,255,255,0.6)', fontSize: 14, textDecorationLine: 'underline' },
   restartBtn: {
     paddingHorizontal: 10,
     minHeight: 32,

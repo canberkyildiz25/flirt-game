@@ -5,14 +5,14 @@ import { CHARACTERS } from '../src/data/characters';
 
 const valid = { characterId: '1', stage: 'friend', affection: 40, message: 'selam', history: [] };
 
-function call(body: unknown, method = 'POST', ip = 'a') {
+function call(body: unknown, method = 'POST', ip = 'a', headers: Record<string, string> = {}) {
   let code = 0;
   let json: any;
   const res = {
     status(c: number) { code = c; return res; },
     json(b: unknown) { json = b; },
   };
-  return handler({ method, body, headers: { 'x-forwarded-for': ip } }, res).then(() => ({ code, json }));
+  return handler({ method, body, headers: { 'x-forwarded-for': ip, ...headers } }, res).then(() => ({ code, json }));
 }
 
 describe('parseBody', () => {
@@ -47,6 +47,14 @@ describe('parseReply', () => {
 describe('handler', () => {
   it('rejects GET', async () => expect((await call(valid, 'GET')).code).toBe(405));
   it('rejects bad input', async () => expect((await call({}, 'POST', 'b')).code).toBe(400));
+  it('asks for login before calling the model', async () => {
+    process.env.POLLINATIONS_KEY = 'test';
+    process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://example.supabase.co';
+    process.env.SUPABASE_SECRET_KEY = 'test';
+    const result = await call(valid, 'POST', 'd');
+    expect(result.code).toBe(401);
+    expect(result.json).toEqual({ error: 'login_required' });
+  });
   it('rate limits one address', async () => {
     let last = 0;
     for (let i = 0; i < 16; i++) last = (await call({}, 'POST', 'c')).code;

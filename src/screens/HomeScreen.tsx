@@ -9,6 +9,8 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { useAuth } from '../store/authStore';
+import { supabase } from '../services/supabase';
 import { useGameStore } from '../store/gameStore';
 import { RootStackParamList } from '../types';
 import Portrait from '../components/Portrait';
@@ -37,6 +39,7 @@ export default function HomeScreen() {
   const bestCharacter = characters
     .filter((c) => c.isUnlocked)
     .sort((a, b) => b.affection - a.affection)[0] ?? null;
+  const session = useAuth((s) => s.session);
   const lastPlayed = lastPlayedId
     ? characters.find((c) => c.id === lastPlayedId) ?? null
     : null;
@@ -151,6 +154,16 @@ export default function HomeScreen() {
         >
           <Text style={styles.secondaryButtonText}>Sohbetlerim</Text>
         </TouchableOpacity>
+
+        {supabase && !session && (
+          <TouchableOpacity
+            accessibilityRole="button"
+            style={styles.secondaryButton}
+            onPress={() => navigation.navigate('Auth', { mode: 'signup' })}
+          >
+            <Text style={styles.secondaryButtonText}>Kayıt ol · ilerlemen her cihazda dursun</Text>
+          </TouchableOpacity>
+        )}
 
         <Text style={styles.hint}>
           {characters.length - unlockedCount > 0

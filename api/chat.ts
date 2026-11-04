@@ -1,3 +1,4 @@
+import { createClient } from '@supabase/supabase-js';
 import { CHARACTERS } from '../src/data/characters';
 import { buildSystemPrompt, STAGES } from './_lib/prompt';
 import { RelationshipStage } from '../src/types';
@@ -8,6 +9,14 @@ const MAX_HISTORY = 20;
 const MAX_LENGTH = 1000;
 const WINDOW_MS = 60_000;
 const MAX_PER_WINDOW = 15;
+const DAILY_LIMIT = Number(process.env.DAILY_MESSAGE_LIMIT ?? 100);
+
+// Gizli anahtar yalnızca sunucuda; token doğrulama ve günlük sayaç için.
+function admin() {
+  const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SECRET_KEY;
+  return url && key ? createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } }) : null;
+}
 
 const REPLY_SCHEMA = {
   type: 'object',
@@ -93,7 +102,21 @@ export default async function handler(req: Req, res: Res) {
 
   const input = parseBody(req.body);
   if (!input) return res.status(400).json({ error: 'invalid' });
-  if (!process.env.POLLINATIONS_KEY) return res.status(503).json({ error: 'not_configured' });
+  const db = admin();
+  if (!process.env.POLLINATIONS_KEY || !db) return res.status(503).json({ error: 'not_configured' });
+
+  const auth = req.headers.authorization;
+  const token = (Array.isArray(auth) ? auth[0] : auth)?.replace(/^Bearer\s+/i, '');
+  if (!token) return res.status(401).json({ error: 'login_required' });
+  const { data: who } = await db.auth.getUser(token);
+  if (!who.user) return res.status(401).json({ error: 'login_required' });
+
+  const { data: used, error: usageError } = await db.rpc('bump_message_usage', { p_user: who.user.id });
+  if (usageError) {
+    console.error('usage failed', usageError.code);
+    return res.status(503).json({ error: 'not_configured' });
+  }
+  if (Number(used) > DAILY_LIMIT) return res.status(429).json({ error: 'daily_limit' });
 
   try {
     const response = await fetch(POLLINATIONS_URL, {

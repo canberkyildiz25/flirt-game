@@ -37,6 +37,7 @@ export type RootStackParamList = {
   Home: undefined;
   Characters: undefined;
   Conversations: undefined;
+  Auth: { mode?: 'login' | 'signup' } | undefined;
   CharacterProfile: { characterId: string };
   Chat: { characterId: string };
 };
