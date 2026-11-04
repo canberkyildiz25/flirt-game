@@ -13,10 +13,18 @@ const KEY =
   (existsSync(envFile) ? readFileSync(envFile, 'utf8').match(/^POLLINATIONS_KEY=(.+)$/m)?.[1].trim() : undefined);
 if (!KEY) throw new Error('POLLINATIONS_KEY eksik: .env.local dosyasına ekle');
 
-const BASE =
-  'realistic editorial head and shoulders portrait photograph of a fictional adult woman in her late twenties, ' +
-  'mature adult facial features, fully clothed, natural skin texture, soft natural light, 85mm lens, ' +
-  'no text, no logo, no watermark, no brand';
+// Ücretsiz modelin süzgeci "portrait of a woman" gibi sıradan istekleri bile engelliyor;
+// orada BASE=headshot ile vesikalık dili kullanılır.
+const BASES = {
+  editorial:
+    'realistic editorial head and shoulders portrait photograph of a fictional adult woman in her late twenties, ' +
+    'mature adult facial features, fully clothed, natural skin texture, soft natural light, 85mm lens, ' +
+    'no text, no logo, no watermark, no brand',
+  headshot:
+    'professional corporate headshot photograph of a fictional 29 year old professional, mature adult features, ' +
+    'photorealistic, soft light, no text, no logo',
+};
+const BASE = BASES[process.env.BASE ?? 'editorial'];
 
 const LOOKS = {
   13: 'short dark hair, pilot uniform with a white shirt buttoned to the collar under a navy jacket with epaulettes, airport terminal window background',
@@ -44,7 +52,12 @@ const ids = process.argv.slice(2).length ? process.argv.slice(2) : Object.keys(L
 
 for (const id of ids) {
   const prompt = encodeURIComponent(`${BASE}, ${LOOKS[id]}`);
-  const query = new URLSearchParams({ model: MODEL, width: '832', height: '1024', seed: String(1000 + Number(id) + OFFSET) });
+  const query = new URLSearchParams({
+    model: MODEL,
+    width: process.env.WIDTH ?? '832',
+    height: process.env.HEIGHT ?? '1024',
+    seed: String(1000 + Number(id) + OFFSET),
+  });
   const url = `https://gen.pollinations.ai/image/${prompt}?${query}`;
   let done = false;
   for (let attempt = 1; attempt <= 4 && !done; attempt++) {

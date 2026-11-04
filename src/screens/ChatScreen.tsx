@@ -194,7 +194,7 @@ export default function ChatScreen() {
         contentContainerStyle={styles.messagesContent}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.disclosure}>{character.name} kurgusal bir karakter; cevaplarını yapay zekâ yazar.</Text>
+        <Text style={styles.disclosure}>{character.name} kurgusal bir karakter; cevaplarını yapay zekâ yazar. Mesajların bu servislere iletilir, kişisel bilgi paylaşma.</Text>
         {messages.map((msg) => (
           <View key={msg.id} style={[styles.row, msg.isPlayer && styles.rowPlayer]}>
             {!msg.isPlayer && <Portrait character={character} style={styles.smallAvatar} />}

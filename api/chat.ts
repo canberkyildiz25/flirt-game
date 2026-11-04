@@ -5,7 +5,16 @@ import { characterFromRow } from './_lib/customCharacter';
 import { Character, RelationshipStage } from '../src/types';
 
 const POLLINATIONS_URL = 'https://gen.pollinations.ai/v1/chat/completions';
-const MODEL = process.env.CHAT_MODEL ?? 'openai/gpt-5.4-mini';
+// Ücretsiz topluluk modelleri sırayla denenir; biri cevap vermezse sıradaki. Ücretli modele düşülmez.
+// Değiştirmek için CHAT_MODELS ortam değişkenine virgülle ayrılmış model adları yazılır.
+const MODELS = (
+  process.env.CHAT_MODELS ??
+  'community/CloudCompile/nvidia-nemotron-3-ultra-550b-a55b:free,community/Saauf/mistral-large-4'
+)
+  .split(',')
+  .map((m: string) => m.trim())
+  .filter(Boolean);
+const PER_MODEL_TIMEOUT_MS = 25_000;
 const MAX_HISTORY = 20;
 const MAX_LENGTH = 1000;
 const DAILY_LIMIT = Number(process.env.DAILY_MESSAGE_LIMIT ?? 100);
@@ -102,6 +111,18 @@ export default async function handler(req: Req, res: Res) {
   }
   if (Number(used) > DAILY_LIMIT) return res.status(429).json({ error: 'daily_limit' });
 
+  const messages = [
+    { role: 'system', content: buildSystemPrompt(character, input.stage, input.affection) },
+    ...input.messages,
+  ];
+  for (const model of MODELS) {
+    const reply = await ask(model, messages);
+    if (reply) return res.status(200).json(reply);
+  }
+  return res.status(502).json({ error: 'upstream' });
+}
+
+async function ask(model: string, messages: { role: string; content: string }[]) {
   try {
     const response = await fetch(POLLINATIONS_URL, {
       method: 'POST',
@@ -110,27 +131,23 @@ export default async function handler(req: Req, res: Res) {
         Authorization: `Bearer ${process.env.POLLINATIONS_KEY}`,
       },
       body: JSON.stringify({
-        model: MODEL,
+        model,
         max_tokens: 600,
         response_format: { type: 'json_schema', json_schema: { name: 'reply', strict: true, schema: REPLY_SCHEMA } },
-        messages: [
-          { role: 'system', content: buildSystemPrompt(character, input.stage, input.affection) },
-          ...input.messages,
-        ],
+        messages,
       }),
-      signal: AbortSignal.timeout(45_000),
+      signal: AbortSignal.timeout(PER_MODEL_TIMEOUT_MS),
     });
-    if (response.status === 429) return res.status(429).json({ error: 'rate_limited' });
     if (!response.ok) {
-      console.error('chat failed', response.status);
-      return res.status(502).json({ error: 'upstream' });
+      console.error('chat failed', model, response.status);
+      return null;
     }
     const data = await response.json();
     const parsed = parseReply(data?.choices?.[0]?.message?.content ?? '');
-    if (!parsed) return res.status(502).json({ error: 'upstream' });
-    return res.status(200).json(parsed);
+    if (!parsed) console.error('chat unreadable', model);
+    return parsed;
   } catch (error) {
-    console.error('chat failed', error instanceof Error ? error.name : error);
-    return res.status(502).json({ error: 'upstream' });
+    console.error('chat failed', model, error instanceof Error ? error.name : error);
+    return null;
   }
 }

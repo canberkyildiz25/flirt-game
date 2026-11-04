@@ -330,6 +330,6 @@ const ALL_CHARACTERS: Character[] = [
 ];
 
 // Portresi kurallara uymadığı için yeniden üretilecek karakterler; o zamana kadar oyunda görünmez.
-const AWAITING_PORTRAIT = ['17', '18'];
+const AWAITING_PORTRAIT: string[] = [];
 
 export const CHARACTERS: Character[] = ALL_CHARACTERS.filter((c) => !AWAITING_PORTRAIT.includes(c.id));

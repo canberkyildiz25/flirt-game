@@ -18,4 +18,6 @@ export const PHOTOS: Record<string, ImageSourcePropType> = {
   '14': require('../../assets/portraits/14.jpg'),
   '15': require('../../assets/portraits/15.jpg'),
   '16': require('../../assets/portraits/16.jpg'),
+  '17': require('../../assets/portraits/17.jpg'),
+  '18': require('../../assets/portraits/18.jpg'),
 };

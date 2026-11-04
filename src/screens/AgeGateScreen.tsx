@@ -20,7 +20,7 @@ export default function AgeGateScreen() {
         <>
           <Text style={styles.title}>Kızlar seni bekliyor. Önce bir soru.</Text>
           <Text style={[type.body, styles.body]}>
-            Karakterlerin hepsi kurgusal ve 18 yaşından büyük. Sohbetlere yapay zekâ cevap verir. Devam etmek için 18 yaşından büyük olmalısın.
+            Karakterlerin hepsi kurgusal ve 18 yaşından büyük. Sohbetlere yapay zekâ cevap verir; mesajların bu servislere iletilir. Devam etmek için 18 yaşından büyük olmalısın.
           </Text>
           <Button label="18 yaşından büyüğüm" onPress={confirmAdult} />
           <Button label="Değilim" variant="ghost" onPress={() => setDeclined(true)} style={{ marginTop: space.md }} />
