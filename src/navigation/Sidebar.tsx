@@ -13,7 +13,7 @@ type Destination = 'Home' | 'Characters' | 'Create' | 'Conversations';
 
 const ITEMS: { route: Destination; label: string; icon: IconName }[] = [
   { route: 'Home', label: 'Ana sayfa', icon: 'home' },
-  { route: 'Characters', label: 'Kartlar', icon: 'cards' },
+  { route: 'Characters', label: 'Kızlar', icon: 'cards' },
   { route: 'Create', label: 'Karakter yarat', icon: 'plus' },
   { route: 'Conversations', label: 'Sohbetlerim', icon: 'chat' },
 ];

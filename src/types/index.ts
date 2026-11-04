@@ -15,6 +15,7 @@ export interface Character {
   hobbies: string[];
   bio: string;
   tagline?: string; // kartta ve profilde görünen kısa söz
+  story?: { past: string; secret: string }; // sır Crush aşamasında açılır
   color: string;
   affection: number; // 0-100
   stage: RelationshipStage;

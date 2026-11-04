@@ -65,6 +65,11 @@ describe('handler', () => {
 describe('characters and prompt', () => {
   it('has only adult characters', () =>
     expect(CHARACTERS.every((c) => c.age >= 18)).toBe(true));
+  it('keeps the secret out of the prompt until the crush stage', () => {
+    const zeynep = CHARACTERS.find((c) => c.name === 'Zeynep')!;
+    expect(buildSystemPrompt(zeynep, 'friend', 50)).not.toContain(zeynep.story!.secret);
+    expect(buildSystemPrompt(zeynep, 'crush', 60)).toContain(zeynep.story!.secret);
+  });
   it('never tells the character to deny being an AI', () => {
     const prompt = buildSystemPrompt(CHARACTERS[0], 'lover', 100);
     expect(prompt).not.toContain('asla söyleme');

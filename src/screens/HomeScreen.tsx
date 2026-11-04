@@ -64,7 +64,7 @@ export default function HomeScreen() {
       )}
 
       <Text style={styles.hero}>Bu gece kiminle?</Text>
-      <Text style={styles.lede}>Kartını seç, ilk mesajı at. Ne kadar iyi flört edersen kalpler o kadar dolar, yeni aşamalar o kadar çabuk açılır.</Text>
+      <Text style={styles.lede}>Birini seç, ilk mesajı at. Ne kadar iyi flört edersen kalpler o kadar dolar, yeni aşamalar o kadar çabuk açılır.</Text>
 
       <View style={styles.ctas}>
         <Button
@@ -82,7 +82,7 @@ export default function HomeScreen() {
           <View style={styles.sectionHead}>
             <Text style={type.heading}>Öne çıkanlar</Text>
             <Pressable accessibilityRole="link" onPress={() => navigation.navigate('Characters')}>
-              <Text style={styles.link}>Tüm kartlar</Text>
+              <Text style={styles.link}>Tüm kızlar</Text>
             </Pressable>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.featuredRow}>
@@ -135,7 +135,7 @@ export default function HomeScreen() {
       {supabase && !session && (
         <View style={styles.signup}>
           <Text style={type.bodyStrong}>Seni unutmasınlar</Text>
-          <Text style={type.small}>Kayıt ol; jetonların, kartların ve sohbetlerin her cihazda seninle olsun.</Text>
+          <Text style={type.small}>Kayıt ol; jetonların, tanıştığın kızlar ve sohbetlerin her cihazda seninle olsun.</Text>
           <Button label="Kayıt ol" variant="reward" compact style={{ alignSelf: 'flex-start', marginTop: space.md }} onPress={() => navigation.navigate('Auth', { mode: 'signup' })} />
         </View>
       )}

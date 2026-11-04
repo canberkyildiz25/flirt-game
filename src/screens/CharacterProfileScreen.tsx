@@ -14,6 +14,9 @@ import { color, font, radius, space, type } from '../theme';
 type Nav = StackNavigationProp<RootStackParamList, 'CharacterProfile'>;
 type Route = RouteProp<RootStackParamList, 'CharacterProfile'>;
 
+// Sohbet talimatındaki eşikle aynı: sır Crush aşamasında açılır.
+const SECRET_FROM = 'crush' as const;
+
 export default function CharacterProfileScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
@@ -23,6 +26,7 @@ export default function CharacterProfileScreen() {
   if (!character) return null;
 
   const stageIndex = STAGE_ORDER.indexOf(character.stage);
+  const secretOpen = stageIndex >= STAGE_ORDER.indexOf(SECRET_FROM);
   const back = () => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Characters'));
 
   return (
@@ -77,6 +81,25 @@ export default function CharacterProfileScreen() {
             );
           })}
         </View>
+
+        {character.story && (
+          <>
+            <Text style={styles.label}>HİKÂYESİ</Text>
+            <Text style={styles.bio}>{character.story.past}</Text>
+
+            <View style={[styles.secret, secretOpen && styles.secretOpen]}>
+              <View style={styles.secretHead}>
+                <Icon name={secretOpen ? 'spark' : 'lock'} size={16} color={secretOpen ? color.butterInk : color.butter} />
+                <Text style={[styles.secretTitle, secretOpen && { color: color.butterInk }]}>
+                  {secretOpen ? 'Sırrı' : 'Bir sırrı var'}
+                </Text>
+              </View>
+              <Text style={[styles.secretText, secretOpen && { color: color.butterInk }]}>
+                {secretOpen ? character.story.secret : `${STAGE_LABELS[SECRET_FROM]} aşamasına ulaşınca sana açılacak.`}
+              </Text>
+            </View>
+          </>
+        )}
 
         {!!character.bio && (
           <>
@@ -151,6 +174,19 @@ const styles = StyleSheet.create({
   stepText: { fontFamily: font.medium, fontSize: 11, color: color.creamFaint },
   stepTextOn: { color: color.cream },
   bio: { ...type.body, marginBottom: space.xl },
+  secret: {
+    padding: space.lg,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: color.butter,
+    marginBottom: space.xxl,
+    gap: space.sm,
+  },
+  secretOpen: { backgroundColor: color.butter, borderStyle: 'solid' },
+  secretHead: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  secretTitle: { fontFamily: font.displayMedium, fontSize: 14, color: color.butter },
+  secretText: { ...type.body, color: color.creamDim },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   tag: {
     paddingHorizontal: 12,

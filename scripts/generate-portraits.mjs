@@ -19,6 +19,12 @@ const BASE =
   'no text, no logo, no watermark, no brand';
 
 const LOOKS = {
+  13: 'short dark hair, pilot uniform with a white shirt buttoned to the collar under a navy jacket with epaulettes, airport terminal window background',
+  14: 'messy blonde bun, light freckles, oversized black hoodie under a barista apron, cozy coffee shop with vinyl records background',
+  15: 'long auburn braid, olive green high neck fleece jacket zipped up, stable with horses softly blurred background',
+  16: 'dark hair under a knitted beanie, red mountain shell jacket zipped to the chin, snowy mountain peaks background',
+  17: 'sleek black hair in a low ponytail, black bartender vest over a white shirt buttoned to the collar, moody rooftop bar lights background',
+  18: 'short black bob with bangs, round glasses, grey crew neck sweatshirt, desk with monitors and soft neon light background',
   1: 'bob haircut, dark hair, red beret, cream linen work shirt with paint marks, art studio background',
   2: 'auburn hair in a low bun, glasses, white doctor coat over teal scrubs, stethoscope, hospital corridor background',
   3: 'big curly copper hair, hoop earrings, navy jacket, guitar strap on shoulder, concert stage lights background',

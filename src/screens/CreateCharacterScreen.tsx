@@ -156,7 +156,7 @@ export default function CreateCharacterScreen() {
       {error && <Text style={styles.error} accessibilityLiveRegion="polite">{error}</Text>}
 
       <Button
-        label={busy ? 'Portre hazırlanıyor, 20 saniye kadar sürer' : session ? 'Kartı oluştur' : 'Oluşturmak için kayıt ol'}
+        label={busy ? 'Portre hazırlanıyor, 20 saniye kadar sürer' : session ? 'Onu yarat' : 'Oluşturmak için kayıt ol'}
         icon={busy ? undefined : 'spark'}
         busy={false}
         disabled={busy}

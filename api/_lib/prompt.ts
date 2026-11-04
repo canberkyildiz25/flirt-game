@@ -13,6 +13,17 @@ const STAGE_TONE: Record<RelationshipStage, string> = {
   lover:        'Sevgililersiniz. Çok yakın, sevecen ve tutkulu konuş. Sarılma, öpücük gibi romantik ifadeler kullanabilirsin; bağlılığını güvenle göster, kıskançlıkla değil.',
 };
 
+const SECRET_FROM: RelationshipStage = 'crush';
+
+function story(character: Character, stage: RelationshipStage): string {
+  if (!character.story) return '';
+  const open = STAGES.indexOf(stage) >= STAGES.indexOf(SECRET_FROM);
+  const secret = open
+    ? `- Sırrın: ${character.story.secret} (Artık yeterince yakınsınız; uygun bir anda kendin açabilirsin.)`
+    : `- Bir sırrın var ama henüz söyleme; sorulursa "belki bir gün" diye merak uyandır.`;
+  return `- Geçmişin: ${character.story.past}\n${secret}\n`;
+}
+
 export function buildSystemPrompt(
   character: Character,
   stage: RelationshipStage,
@@ -26,7 +37,7 @@ Senin hakkında:
 - Kişiliğin: ${character.personality}
 - Hobilerin: ${character.hobbies.join(', ')}
 - Biyografin: ${character.bio}
-
+${story(character, stage)}
 Şu anki ilişki durumu: "${stage}" — Sevgi puanı: ${affection}/100
 Ton talimatı: ${STAGE_TONE[stage]}
 

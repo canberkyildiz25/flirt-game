@@ -18,7 +18,7 @@ export default function AgeGateScreen() {
         <Text style={type.body}>Bu oyun yetişkinlere göre. Başka zaman görüşürüz.</Text>
       ) : (
         <>
-          <Text style={styles.title}>Kartlar masada. Önce bir soru.</Text>
+          <Text style={styles.title}>Kızlar seni bekliyor. Önce bir soru.</Text>
           <Text style={[type.body, styles.body]}>
             Karakterlerin hepsi kurgusal ve 18 yaşından büyük. Sohbetlere yapay zekâ cevap verir. Devam etmek için 18 yaşından büyük olmalısın.
           </Text>

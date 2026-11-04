@@ -10,7 +10,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  ImageBackground,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useGameStore } from '../store/gameStore';
 import { RootStackParamList, StoredMessage } from '../types';
@@ -22,6 +24,7 @@ import { supabase } from '../services/supabase';
 import Icon from '../components/Icon';
 import { Button, HeartMeter, IconButton, STAGE_LABELS } from '../components/ui';
 import { color, font, radius, space, type } from '../theme';
+import { chatBackground } from '../data/backgrounds';
 
 const OPENING_CUE = '(Oyuncu sohbeti az önce açtı. İlk mesajı karakter olarak sen yaz.)';
 
@@ -157,6 +160,7 @@ export default function ChatScreen() {
     }
   }
 
+  const background = chatBackground(character);
   const back = () => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Conversations'));
 
   return (
@@ -181,6 +185,9 @@ export default function ChatScreen() {
         <IconButton icon="restart" label="Sohbeti baştan başlat" onPress={restartConversation} />
       </View>
 
+      {/* Karakterin dünyasından insansız sahne; metin okunaklı kalsın diye koyulaştırılır. */}
+      <ImageBackground source={background} style={styles.scene} imageStyle={styles.sceneImage} resizeMode="cover">
+      <LinearGradient colors={['rgba(26,15,20,0.30)', 'rgba(26,15,20,0.75)']} style={StyleSheet.absoluteFill} pointerEvents="none" />
       <ScrollView
         ref={scrollRef}
         style={styles.messages}
@@ -220,6 +227,7 @@ export default function ChatScreen() {
           </View>
         )}
       </ScrollView>
+      </ImageBackground>
 
       {affectionToast !== null && (
         <Animated.View style={[styles.toast, { opacity: toastOpacity }]} pointerEvents="none">
@@ -287,6 +295,9 @@ const styles = StyleSheet.create({
   headerMeta: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: 2 },
   headerStage: { fontFamily: font.bold, fontSize: 12, color: color.butter },
   messages: { flex: 1 },
+  // Görsel mutlak konumlu; taşmasın diye kapsayıcı kırpar.
+  scene: { flex: 1, overflow: 'hidden' },
+  sceneImage: { opacity: 0.8 },
   messagesContent: { padding: space.lg, gap: space.md },
   disclosure: { ...type.small, textAlign: 'center', marginBottom: space.sm },
   row: { flexDirection: 'row', alignItems: 'flex-end', gap: space.sm, maxWidth: '85%' },

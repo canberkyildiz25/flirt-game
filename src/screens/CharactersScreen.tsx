@@ -37,7 +37,7 @@ function CreateTile({ width }: { width: number }) {
       <View style={styles.createIcon}>
         <Icon name="plus" size={28} color={color.ink} />
       </View>
-      <Text style={styles.createTitle}>Kendi kartını yarat</Text>
+      <Text style={styles.createTitle}>Kendi kızını yarat</Text>
       <Text style={styles.createBody}>Kişiliğini ve görünüşünü sen seç, portresi hazırlansın.</Text>
     </Pressable>
   );
@@ -67,7 +67,7 @@ function CharacterCard({ character, width }: { character: Character; width: numb
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={character.isUnlocked ? `${character.name}, ${character.age}` : 'Kilitli kart'}
+      accessibilityLabel={character.isUnlocked ? `${character.name}, ${character.age}` : 'Gizli hayran'}
       onPress={open}
       style={({ pressed }) => [styles.card, { width }, pressed && styles.pressed]}
     >
@@ -131,8 +131,8 @@ export default function CharactersScreen() {
           <View>
             <View style={styles.header}>
               <View>
-                <Text style={type.title}>Kartların</Text>
-                <Text style={type.small}>{unlockedCount}/{characters.length} kart açık</Text>
+                <Text style={type.title}>Kızlar</Text>
+                <Text style={type.small}>{unlockedCount}/{characters.length} kızla tanıştın</Text>
               </View>
               <CoinPill amount={coins} />
             </View>
