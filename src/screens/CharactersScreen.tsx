@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,31 @@ import { confirmAction, notify } from '../utils/confirm';
 
 const GAP = 16;
 const SIDE = 16;
+const CREATE_TILE = '__create';
+
+type Filter = 'all' | 'met' | 'locked' | 'mine';
+const FILTERS: { id: Filter; label: string; test: (c: Character) => boolean }[] = [
+  { id: 'all', label: 'Tümü', test: () => true },
+  { id: 'met', label: 'Tanıştıklarım', test: (c) => c.isUnlocked && !c.isCustom },
+  { id: 'locked', label: 'Kilitli', test: (c) => !c.isUnlocked },
+  { id: 'mine', label: 'Benim karakterlerim', test: (c) => !!c.isCustom },
+];
+
+function CreateTile({ width }: { width: number }) {
+  const navigation = useNavigation<Nav>();
+  return (
+    <TouchableOpacity
+      accessibilityRole="button"
+      style={[styles.card, styles.createCard, { width, minHeight: width * 1.2 + 96 }]}
+      onPress={() => navigation.navigate('Create')}
+      activeOpacity={0.9}
+    >
+      <Text style={styles.createPlus}>+</Text>
+      <Text style={styles.createTitle}>Karakter oluştur</Text>
+      <Text style={styles.createBody}>Kişiliğini ve görünüşünü sen seç, portresi hazırlansın.</Text>
+    </TouchableOpacity>
+  );
+}
 
 type Nav = StackNavigationProp<RootStackParamList, 'Characters'>;
 
@@ -127,6 +152,9 @@ export default function CharactersScreen() {
   const unlockedCount = characters.filter((c) => c.isUnlocked).length;
   const { contentWidth, columns } = useLayout();
   const cardWidth = Math.floor((contentWidth - SIDE * 2 - GAP * (columns - 1)) / columns);
+  const [filter, setFilter] = useState<Filter>('all');
+  const visible = characters.filter(FILTERS.find((f) => f.id === filter)!.test);
+  const tiles: (Character | typeof CREATE_TILE)[] = filter === 'locked' ? visible : [CREATE_TILE, ...visible];
 
   return (
     <LinearGradient colors={['#0a0015', '#1a0030']} style={styles.container}>
@@ -143,13 +171,30 @@ export default function CharactersScreen() {
       </View>
 
       <FlatList
-        data={characters}
-        keyExtractor={(item) => item.id}
+        data={tiles}
+        keyExtractor={(item) => (item === CREATE_TILE ? item : item.id)}
+        ListHeaderComponent={
+          <View style={styles.filters}>
+            {FILTERS.map((f) => (
+              <TouchableOpacity
+                key={f.id}
+                accessibilityRole="tab"
+                aria-selected={filter === f.id}
+                onPress={() => setFilter(f.id)}
+                style={[styles.filter, filter === f.id && styles.filterOn]}
+              >
+                <Text style={[styles.filterText, filter === f.id && styles.filterTextOn]}>{f.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        }
         key={columns}
         numColumns={columns}
         columnWrapperStyle={styles.row}
         contentContainerStyle={styles.listContent}
-        renderItem={({ item }) => <CharacterCard character={item} width={cardWidth} />}
+        renderItem={({ item }) =>
+          item === CREATE_TILE ? <CreateTile width={cardWidth} /> : <CharacterCard character={item} width={cardWidth} />
+        }
         showsVerticalScrollIndicator={false}
       />
     </LinearGradient>
@@ -191,6 +236,29 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
   },
+  filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
+  filter: {
+    paddingHorizontal: 14,
+    minHeight: 36,
+    justifyContent: 'center',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.16)',
+  },
+  filterOn: { backgroundColor: 'rgba(233,30,140,0.18)', borderColor: '#E91E8C' },
+  filterText: { color: 'rgba(255,255,255,0.75)', fontSize: 14 },
+  filterTextOn: { color: '#fff', fontWeight: '700' },
+  createCard: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+    borderStyle: 'dashed',
+    borderColor: 'rgba(233,30,140,0.6)',
+    backgroundColor: 'rgba(233,30,140,0.06)',
+  },
+  createPlus: { color: '#E91E8C', fontSize: 44, fontWeight: '300', marginBottom: 8 },
+  createTitle: { color: '#fff', fontSize: 17, fontWeight: '800', marginBottom: 6, textAlign: 'center' },
+  createBody: { color: 'rgba(255,255,255,0.65)', fontSize: 13, lineHeight: 18, textAlign: 'center' },
   listContent: {
     paddingHorizontal: SIDE,
     paddingBottom: 24,

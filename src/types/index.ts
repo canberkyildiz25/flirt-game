@@ -18,6 +18,9 @@ export interface Character {
   affection: number; // 0-100
   stage: RelationshipStage;
   isUnlocked: boolean;
+  isCustom?: boolean; // kullanıcının oluşturduğu karakter
+  portraitUrl?: string;
+  tags?: string[];
 }
 
 export interface StoredMessage {
@@ -38,6 +41,7 @@ export type RootStackParamList = {
   Characters: undefined;
   Conversations: undefined;
   Auth: { mode?: 'login' | 'signup' } | undefined;
+  Create: undefined;
   CharacterProfile: { characterId: string };
   Chat: { characterId: string };
 };

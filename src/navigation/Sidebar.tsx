@@ -6,11 +6,12 @@ import { navigationRef } from './ref';
 import { signOut, useAuth } from '../store/authStore';
 import { supabase } from '../services/supabase';
 
-type Destination = 'Home' | 'Characters' | 'Conversations';
+type Destination = 'Home' | 'Characters' | 'Create' | 'Conversations';
 
 const ITEMS: { route: Destination; label: string }[] = [
   { route: 'Home', label: 'Ana sayfa' },
   { route: 'Characters', label: 'Karakterler' },
+  { route: 'Create', label: 'Karakter oluştur' },
   { route: 'Conversations', label: 'Sohbetlerim' },
 ];
 
@@ -36,7 +37,7 @@ export default function Sidebar({ current }: { current?: keyof RootStackParamLis
             <TouchableOpacity
               key={item.route}
               accessibilityRole="link"
-              accessibilityState={{ selected: isActive }}
+              aria-selected={isActive}
               onPress={() => navigationRef.isReady() && navigationRef.navigate(item.route)}
               style={[styles.item, isActive && styles.itemActive]}
             >

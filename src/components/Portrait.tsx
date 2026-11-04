@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, StyleProp, View, ViewStyle } from 'react-native';
+import { Image, StyleProp, Text, View, ViewStyle } from 'react-native';
 import Svg, { Circle, Ellipse, G, Path, Rect } from 'react-native-svg';
 import { Character, RelationshipStage } from '../types';
 import { STAGE_ORDER } from '../utils/characterUtils';
@@ -86,7 +86,7 @@ export default function Portrait({ character, stage, style }: Props) {
   const stageIndex = STAGE_ORDER.indexOf(stage ?? character.stage);
   const motifCount = 2 + stageIndex + (stageIndex >= 4 ? 1 : 0);
   const { color } = character;
-  const photo = PHOTOS[character.id];
+  const photo = character.portraitUrl ? { uri: character.portraitUrl } : PHOTOS[character.id];
 
   if (photo) {
     return (
@@ -97,6 +97,14 @@ export default function Portrait({ character, stage, style }: Props) {
           accessibilityLabel={`${character.name}, kurgusal karakter portresi`}
           style={{ width: '100%', height: '100%' }}
         />
+      </View>
+    );
+  }
+
+  if (!look) {
+    return (
+      <View style={[{ overflow: 'hidden', backgroundColor: character.color, alignItems: 'center', justifyContent: 'center' }, style]}>
+        <Text style={{ color: '#fff', fontSize: 24, fontWeight: '800' }}>{character.name.slice(0, 1)}</Text>
       </View>
     );
   }

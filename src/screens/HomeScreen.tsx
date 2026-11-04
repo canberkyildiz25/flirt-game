@@ -11,6 +11,7 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useAuth } from '../store/authStore';
 import { supabase } from '../services/supabase';
+import { DAILY_REWARD, today } from '../store/gameStore';
 import { useGameStore } from '../store/gameStore';
 import { RootStackParamList } from '../types';
 import Portrait from '../components/Portrait';
@@ -40,6 +41,9 @@ export default function HomeScreen() {
     .filter((c) => c.isUnlocked)
     .sort((a, b) => b.affection - a.affection)[0] ?? null;
   const session = useAuth((s) => s.session);
+  const lastRewardDate = useGameStore((s) => s.lastRewardDate);
+  const claimDailyReward = useGameStore((s) => s.claimDailyReward);
+  const rewardReady = lastRewardDate !== today();
   const lastPlayed = lastPlayedId
     ? characters.find((c) => c.id === lastPlayedId) ?? null
     : null;
@@ -129,6 +133,24 @@ export default function HomeScreen() {
           </View>
         )}
 
+        {/* Günlük ödül */}
+        <View style={styles.rewardCard}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.rewardTitle}>Günlük ödül</Text>
+            <Text style={styles.rewardBody}>
+              {rewardReady ? `Bugünkü ${DAILY_REWARD} 🪙 seni bekliyor.` : 'Bugünkünü aldın. Yarın yine gel.'}
+            </Text>
+          </View>
+          <TouchableOpacity
+            accessibilityRole="button"
+            disabled={!rewardReady}
+            onPress={claimDailyReward}
+            style={[styles.rewardButton, !rewardReady && styles.rewardButtonDone]}
+          >
+            <Text style={styles.rewardButtonText}>{rewardReady ? 'Al' : 'Alındı'}</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* Ana buton */}
         <TouchableOpacity
           style={styles.primaryButton}
@@ -176,6 +198,22 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  rewardCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,215,0,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.25)',
+    marginBottom: 16,
+  },
+  rewardTitle: { color: '#FFD700', fontSize: 15, fontWeight: '800' },
+  rewardBody: { color: 'rgba(255,255,255,0.75)', fontSize: 13, marginTop: 2 },
+  rewardButton: { backgroundColor: '#FFD700', borderRadius: 10, paddingHorizontal: 18, minHeight: 40, justifyContent: 'center' },
+  rewardButtonDone: { backgroundColor: 'rgba(255,255,255,0.12)' },
+  rewardButtonText: { color: '#1B1320', fontWeight: '800', fontSize: 14 },
   secondaryButton: {
     minHeight: 48,
     borderRadius: 14,

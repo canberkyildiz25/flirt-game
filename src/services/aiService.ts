@@ -4,6 +4,11 @@ import { supabase } from './supabase';
 // Web'de aynı origin; mobilde yayındaki adres EXPO_PUBLIC_API_URL ile verilir.
 const API_URL = `${process.env.EXPO_PUBLIC_API_URL ?? ''}/api/chat`;
 
+export async function authHeader(): Promise<Record<string, string>> {
+  const token = (await supabase?.auth.getSession())?.data.session?.access_token;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 export interface AiMessage {
   role: 'user' | 'assistant';
   content: string;
@@ -19,13 +24,11 @@ export async function getAiResponse(
   history: AiMessage[],
   userMessage: string
 ): Promise<AiReply> {
-  const auth = (await supabase?.auth.getSession())?.data;
-  const token = auth?.session?.access_token;
   const response = await fetch(API_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(await authHeader()),
     },
     body: JSON.stringify({
       characterId: character.id,

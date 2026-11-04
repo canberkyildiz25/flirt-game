@@ -9,6 +9,7 @@ import CharacterProfileScreen from '../screens/CharacterProfileScreen';
 import ChatScreen from '../screens/ChatScreen';
 import ConversationsScreen from '../screens/ConversationsScreen';
 import AuthScreen from '../screens/AuthScreen';
+import CreateCharacterScreen from '../screens/CreateCharacterScreen';
 import { navigationRef } from './ref';
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -30,6 +31,7 @@ const Home = centered(HomeScreen);
 const Profile = centered(CharacterProfileScreen);
 const Chat = centered(ChatScreen);
 const Auth = centered(AuthScreen);
+const Create = centered(CreateCharacterScreen);
 
 interface Props {
   onRouteChange: (route?: keyof RootStackParamList) => void;
@@ -52,6 +54,7 @@ export default function AppNavigator({ onRouteChange }: Props) {
         <Stack.Screen name="CharacterProfile" component={Profile} />
         <Stack.Screen name="Chat" component={Chat} />
         <Stack.Screen name="Auth" component={Auth} />
+        <Stack.Screen name="Create" component={Create} />
       </Stack.Navigator>
     </NavigationContainer>
   );

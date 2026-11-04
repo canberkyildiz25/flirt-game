@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Character, Conversation, RelationshipStage } from '../types';
 import { CHARACTERS } from '../data/characters';
+import { characterFromRow, CustomRow } from '../data/customCharacters';
 
 const STAGE_THRESHOLDS: Record<RelationshipStage, number> = {
   stranger: 0,
@@ -25,17 +26,23 @@ function getStageFromAffection(affection: number): RelationshipStage {
 export interface GameSnapshot {
   characters: Character[];
   coins: number;
+  lastRewardDate: string | null;
   conversations: Record<string, Conversation>;
 }
 
 interface ServerState {
   coins?: number;
+  lastRewardDate?: string | null;
+  custom: CustomRow[];
   progress: { character_id: string; affection: number; stage: string; is_unlocked: boolean }[];
   conversations: { character_id: string; messages: Conversation['messages']; history: Conversation['history']; updated_at: string }[];
 }
 
 // Kilitli karakterleri açmak için coin maliyeti
 export const UNLOCK_COST = 80;
+export const DAILY_REWARD = 30;
+
+export const today = () => new Date().toISOString().slice(0, 10);
 
 // Cihazda tutulan sohbet sınırı; modele zaten son 20 mesaj gider.
 const MAX_STORED_MESSAGES = 200;
@@ -48,6 +55,7 @@ interface GameState {
   coins: number;
   lastPlayedCharacterId: string | null;
   isAdultConfirmed: boolean;
+  lastRewardDate: string | null;
 
   setActiveCharacter: (id: string) => void;
   addAffection: (characterId: string, amount: number) => void;
@@ -60,6 +68,8 @@ interface GameState {
   confirmAdult: () => void;
   applyServerState: (server: ServerState) => void;
   resetProgress: () => void;
+  addCustomCharacter: (character: Character) => void;
+  claimDailyReward: () => boolean;
 }
 
 export const useGameStore = create<GameState>()(
@@ -71,6 +81,7 @@ export const useGameStore = create<GameState>()(
       coins: 50, // başlangıç bonus'u
       lastPlayedCharacterId: null,
       isAdultConfirmed: false,
+      lastRewardDate: null,
 
       setActiveCharacter: (id) => set({ activeCharacterId: id }),
 
@@ -127,10 +138,11 @@ export const useGameStore = create<GameState>()(
       confirmAdult: () => set({ isAdultConfirmed: true }),
 
       // Hesaptaki kayıt cihazdakinin yerine geçer.
-      applyServerState: ({ coins, progress, conversations }) =>
+      applyServerState: ({ coins, lastRewardDate, custom, progress, conversations }) =>
         set((state) => ({
           coins: coins ?? state.coins,
-          characters: CHARACTERS.map((c) => {
+          lastRewardDate: lastRewardDate ?? null,
+          characters: [...CHARACTERS, ...custom.map(characterFromRow)].map((c) => {
             const row = progress.find((p) => p.character_id === c.id);
             return row
               ? { ...c, affection: row.affection, stage: getStageFromAffection(row.affection), isUnlocked: row.is_unlocked }
@@ -146,7 +158,16 @@ export const useGameStore = create<GameState>()(
 
       // Çıkışta cihazdaki ilerleme silinir; bir sonraki kişi görmesin.
       resetProgress: () =>
-        set({ characters: CHARACTERS, coins: 50, conversations: {}, lastPlayedCharacterId: null }),
+        set({ characters: CHARACTERS, coins: 50, conversations: {}, lastPlayedCharacterId: null, lastRewardDate: null }),
+
+      addCustomCharacter: (character) =>
+        set((state) => ({ characters: [...state.characters, character] })),
+
+      claimDailyReward: () => {
+        if (get().lastRewardDate === today()) return false;
+        set((state) => ({ coins: state.coins + DAILY_REWARD, lastRewardDate: today() }));
+        return true;
+      },
     }),
     {
       name: 'flirt-game-v1',

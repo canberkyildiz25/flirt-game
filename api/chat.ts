@@ -1,22 +1,16 @@
-import { createClient } from '@supabase/supabase-js';
 import { CHARACTERS } from '../src/data/characters';
 import { buildSystemPrompt, STAGES } from './_lib/prompt';
-import { RelationshipStage } from '../src/types';
+import { admin, clientIp, currentUser, Req, Res, windowLimiter } from './_lib/auth';
+import { characterFromRow } from './_lib/customCharacter';
+import { Character, RelationshipStage } from '../src/types';
 
 const POLLINATIONS_URL = 'https://gen.pollinations.ai/v1/chat/completions';
 const MODEL = process.env.CHAT_MODEL ?? 'openai/gpt-5.4-mini';
 const MAX_HISTORY = 20;
 const MAX_LENGTH = 1000;
-const WINDOW_MS = 60_000;
-const MAX_PER_WINDOW = 15;
 const DAILY_LIMIT = Number(process.env.DAILY_MESSAGE_LIMIT ?? 100);
-
-// Gizli anahtar yalnızca sunucuda; token doğrulama ve günlük sayaç için.
-function admin() {
-  const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SECRET_KEY;
-  return url && key ? createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } }) : null;
-}
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const limited = windowLimiter(15);
 
 const REPLY_SCHEMA = {
   type: 'object',
@@ -27,26 +21,6 @@ const REPLY_SCHEMA = {
   required: ['reply', 'affectionChange'],
   additionalProperties: false,
 };
-
-// Örnek başına çalışır: tek başına bütçe koruması değildir, Pollinations tarafında bakiye de sınır koyar.
-const hits = new Map<string, number[]>();
-
-function isLimited(ip: string, now = Date.now()): boolean {
-  const recent = (hits.get(ip) ?? []).filter((t) => now - t < WINDOW_MS);
-  recent.push(now);
-  hits.set(ip, recent);
-  return recent.length > MAX_PER_WINDOW;
-}
-
-interface Req {
-  method?: string;
-  body?: any;
-  headers: Record<string, string | string[] | undefined>;
-}
-interface Res {
-  status(code: number): Res;
-  json(body: unknown): void;
-}
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
 
@@ -62,13 +36,16 @@ export function parseReply(raw: string) {
   }
 }
 
+// Hazır karakterler kimlikle, kullanıcının karakterleri UUID ile gelir (sahiplik girişten sonra kontrol edilir).
 export function parseBody(body: any) {
-  const character = CHARACTERS.find((c) => c.id === body?.characterId);
+  const characterId = body?.characterId;
+  const builtIn = CHARACTERS.find((c) => c.id === characterId);
   const stage = body?.stage as RelationshipStage;
   const affection = Number(body?.affection);
   const message = body?.message;
   const history = body?.history ?? [];
-  if (!character || !STAGES.includes(stage)) return null;
+  if (typeof characterId !== 'string' || (!builtIn && !UUID.test(characterId))) return null;
+  if (!STAGES.includes(stage)) return null;
   if (!Number.isFinite(affection) || affection < 0 || affection > 100) return null;
   if (typeof message !== 'string' || !message.trim() || message.length > MAX_LENGTH) return null;
   if (!Array.isArray(history)) return null;
@@ -83,7 +60,8 @@ export function parseBody(body: any) {
   // Konuşma kullanıcı mesajıyla başlamalı; kırpma asistanla başlatabilir.
   const start = clean.findIndex((m: any) => m.role === 'user');
   return {
-    character,
+    characterId,
+    builtIn,
     stage,
     affection,
     messages: [
@@ -95,23 +73,29 @@ export function parseBody(body: any) {
 
 export default async function handler(req: Req, res: Res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'method' });
-
-  const forwarded = req.headers['x-forwarded-for'];
-  const ip = (Array.isArray(forwarded) ? forwarded[0] : forwarded)?.split(',')[0] ?? 'unknown';
-  if (isLimited(ip)) return res.status(429).json({ error: 'rate_limited' });
+  if (limited(clientIp(req))) return res.status(429).json({ error: 'rate_limited' });
 
   const input = parseBody(req.body);
   if (!input) return res.status(400).json({ error: 'invalid' });
+
   const db = admin();
   if (!process.env.POLLINATIONS_KEY || !db) return res.status(503).json({ error: 'not_configured' });
+  const user = await currentUser(db, req);
+  if (!user) return res.status(401).json({ error: 'login_required' });
 
-  const auth = req.headers.authorization;
-  const token = (Array.isArray(auth) ? auth[0] : auth)?.replace(/^Bearer\s+/i, '');
-  if (!token) return res.status(401).json({ error: 'login_required' });
-  const { data: who } = await db.auth.getUser(token);
-  if (!who.user) return res.status(401).json({ error: 'login_required' });
+  let character: Character | undefined = input.builtIn;
+  if (!character) {
+    const { data: row } = await db
+      .from('custom_characters')
+      .select('*')
+      .eq('id', input.characterId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (!row) return res.status(404).json({ error: 'unknown_character' });
+    character = characterFromRow(row);
+  }
 
-  const { data: used, error: usageError } = await db.rpc('bump_message_usage', { p_user: who.user.id });
+  const { data: used, error: usageError } = await db.rpc('bump_message_usage', { p_user: user.id });
   if (usageError) {
     console.error('usage failed', usageError.code);
     return res.status(503).json({ error: 'not_configured' });
@@ -130,7 +114,7 @@ export default async function handler(req: Req, res: Res) {
         max_tokens: 600,
         response_format: { type: 'json_schema', json_schema: { name: 'reply', strict: true, schema: REPLY_SCHEMA } },
         messages: [
-          { role: 'system', content: buildSystemPrompt(input.character, input.stage, input.affection) },
+          { role: 'system', content: buildSystemPrompt(character, input.stage, input.affection) },
           ...input.messages,
         ],
       }),
