@@ -14,6 +14,7 @@ export interface Character {
   personality: string;
   hobbies: string[];
   bio: string;
+  tagline?: string; // kartta ve profilde görünen kısa söz
   color: string;
   affection: number; // 0-100
   stage: RelationshipStage;

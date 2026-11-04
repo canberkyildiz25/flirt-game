@@ -51,6 +51,8 @@ export default function CharacterProfileScreen() {
           </View>
         </View>
 
+        {!!character.tagline && <Text style={styles.tagline}>“{character.tagline}”</Text>}
+
         <Button
           label={`${character.name} ile sohbet et`}
           icon="chat"
@@ -129,6 +131,7 @@ const styles = StyleSheet.create({
     paddingVertical: space.md,
   },
   meterText: { fontFamily: font.bold, fontSize: 14, color: color.creamDim },
+  tagline: { fontFamily: font.displayMedium, fontSize: 17, lineHeight: 25, color: color.cream, marginBottom: space.lg },
   cta: { marginBottom: space.xxl },
   label: { ...type.label, marginBottom: space.md },
   path: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: space.xxl },

@@ -44,7 +44,7 @@ export default function ConversationsScreen() {
         <Text style={styles.title}>Sohbetlerim</Text>
         {rows.length === 0 ? (
           <View style={styles.empty}>
-            <Text style={styles.emptyText}>Henüz kimseyle konuşmadın.</Text>
+            <Text style={styles.emptyText}>Henüz kimseye yazmadın. Utangaçlık sana yakışmıyor.</Text>
             <Button label="Kartlara bak" icon="cards" compact style={{ alignSelf: 'flex-start' }} onPress={() => navigation.navigate('Characters')} />
           </View>
         ) : (

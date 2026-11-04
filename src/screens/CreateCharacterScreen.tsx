@@ -97,7 +97,7 @@ export default function CreateCharacterScreen() {
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
       <Text style={styles.title}>Karakter oluştur</Text>
       <Text style={styles.body}>
-        Seçimlerine göre kurgusal, 18 yaşından büyük bir karakter ve portresi hazırlanır. Günde en fazla 3 karakter.
+        Hayalindeki karakteri kur: adı, tarzı, konuşması. Kurgusal ve 18 yaşından büyük olur, portresi 20 saniyede hazır. Günde en fazla 3 karakter.
       </Text>
 
       <Text style={styles.label}>Adı</Text>

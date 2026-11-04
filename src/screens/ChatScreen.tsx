@@ -231,7 +231,7 @@ export default function ChatScreen() {
       {needsLogin ? (
         <View style={styles.loginPrompt}>
           <Text style={type.bodyStrong}>{character.name} seni bekliyor.</Text>
-          <Text style={[type.small, { textAlign: 'center' }]}>Sohbet etmek için giriş yap ya da ücretsiz kayıt ol.</Text>
+          <Text style={[type.small, { textAlign: 'center' }]}>Yazmak için giriş yap ya da ücretsiz kayıt ol. O çoktan hazır.</Text>
           <View style={styles.loginButtons}>
             <Button label="Giriş yap" compact onPress={() => navigation.navigate('Auth', { mode: 'login' })} />
             <Button label="Kayıt ol" compact variant="ghost" onPress={() => navigation.navigate('Auth', { mode: 'signup' })} />
@@ -241,7 +241,7 @@ export default function ChatScreen() {
         <View style={styles.composer}>
           <TextInput
             style={styles.input}
-            placeholder="Bir şey yaz…"
+            placeholder={messages.some((m) => m.isPlayer) ? 'Cevabını yaz…' : 'İlk adımı at…'}
             placeholderTextColor={color.creamFaint}
             value={inputText}
             onChangeText={setInputText}

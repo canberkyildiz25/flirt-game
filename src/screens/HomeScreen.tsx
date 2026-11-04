@@ -30,7 +30,7 @@ function FeaturedCard({ character, onPress }: { character: Character; onPress: (
       </View>
       <View style={styles.featuredInfo}>
         <Text style={styles.featuredName}>{character.name}</Text>
-        <Text style={styles.featuredJob} numberOfLines={1}>{character.occupation}</Text>
+        <Text style={styles.featuredJob} numberOfLines={2}>{character.tagline ?? character.occupation}</Text>
       </View>
     </Pressable>
   );
@@ -64,7 +64,7 @@ export default function HomeScreen() {
       )}
 
       <Text style={styles.hero}>Bu gece kiminle?</Text>
-      <Text style={styles.lede}>Kartını seç, sohbeti başlat. Her mesajda bağ güçlenir, yeni aşamalar açılır.</Text>
+      <Text style={styles.lede}>Kartını seç, ilk mesajı at. Ne kadar iyi flört edersen kalpler o kadar dolar, yeni aşamalar o kadar çabuk açılır.</Text>
 
       <View style={styles.ctas}>
         <Button
@@ -100,7 +100,7 @@ export default function HomeScreen() {
           <View style={{ flex: 1 }}>
             <Text style={[styles.ticketTitle, !rewardReady && { color: color.cream }]}>Günlük bilet</Text>
             <Text style={[styles.ticketBody, !rewardReady && { color: color.creamFaint }]}>
-              {rewardReady ? `${DAILY_REWARD} jeton seni bekliyor` : 'Bugünkü alındı, yarın yenisi gelir'}
+              {rewardReady ? `${DAILY_REWARD} jeton. Birine kahve ısmarlamaya yeter.` : 'Bugünkünü aldın. Yarın yine uğra, özlenirsin.'}
             </Text>
           </View>
         </View>
@@ -134,13 +134,13 @@ export default function HomeScreen() {
 
       {supabase && !session && (
         <View style={styles.signup}>
-          <Text style={type.bodyStrong}>Kartların kaybolmasın</Text>
+          <Text style={type.bodyStrong}>Seni unutmasınlar</Text>
           <Text style={type.small}>Kayıt ol; jetonların, kartların ve sohbetlerin her cihazda seninle olsun.</Text>
           <Button label="Kayıt ol" variant="reward" compact style={{ alignSelf: 'flex-start', marginTop: space.md }} onPress={() => navigation.navigate('Auth', { mode: 'signup' })} />
         </View>
       )}
 
-      {lockedCount > 0 && <Text style={styles.footnote}>{lockedCount} kart hâlâ kilitli. Jeton biriktir, aç.</Text>}
+      {lockedCount > 0 && <Text style={styles.footnote}>{lockedCount} kişi hâlâ seni tanımıyor. Jeton biriktir, kilidi aç.</Text>}
     </ScrollView>
   );
 }

@@ -52,10 +52,10 @@ function CharacterCard({ character, width }: { character: Character; width: numb
 
   function handleUnlock() {
     if (coins < UNLOCK_COST) {
-      notify('Jetonun yetmiyor', `Bu kartı açmak için ${UNLOCK_COST} jeton gerekiyor, sende ${coins} var. Sohbet ettikçe jeton kazanırsın.`);
+      notify('Jetonun yetmiyor', `Onunla tanışmak ${UNLOCK_COST} jeton, sende ${coins} var. Biraz daha sohbet et, jetonlar gelir.`);
       return;
     }
-    confirmAction('Yeni kart aç', `Bu kartı açmak için ${UNLOCK_COST} jeton harcansın mı?`, `${UNLOCK_COST} jeton harca`, () => {
+    confirmAction('Gizli hayranla tanış', `Kim olduğunu görmek için ${UNLOCK_COST} jeton harcansın mı?`, `${UNLOCK_COST} jeton harca`, () => {
       spendCoins(UNLOCK_COST);
       unlockCharacter(character.id);
     });
@@ -92,7 +92,7 @@ function CharacterCard({ character, width }: { character: Character; width: numb
       </View>
       <View style={styles.cardBottom}>
         <Text style={styles.name} numberOfLines={1}>
-          {character.isUnlocked ? character.name : 'Gizli kart'}
+          {character.isUnlocked ? character.name : 'Gizli hayran'}
         </Text>
         {character.isUnlocked ? (
           <View style={styles.metaRow}>
@@ -100,7 +100,7 @@ function CharacterCard({ character, width }: { character: Character; width: numb
             <HeartMeter value={character.affection} size={13} />
           </View>
         ) : (
-          <Text style={styles.age}>Açmak için dokun</Text>
+          <Text style={styles.age}>Kim olduğunu merak etmiyor musun?</Text>
         )}
       </View>
     </Pressable>
