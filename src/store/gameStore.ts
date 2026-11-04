@@ -172,16 +172,21 @@ export const useGameStore = create<GameState>()(
     {
       name: 'flirt-game-v1',
       storage: createJSONStorage(() => AsyncStorage),
-      // Yeni eklenen karakterleri persist edilmiş state'e merge et
+      // Kayıttan yalnızca ilerleme alınır; hazır karakterlerin metni ve etiketleri her açılışta güncel
+      // veriden gelir. Kullanıcının oluşturduğu karakterler olduğu gibi kalır.
       merge: (persisted: any, current: GameState) => {
-        const persistedIds = new Set<string>(
-          persisted.characters?.map((c: Character) => c.id) ?? []
+        const saved = new Map<string, Character>(
+          (persisted?.characters ?? []).map((c: Character) => [c.id, c])
         );
-        const newChars = CHARACTERS.filter((c) => !persistedIds.has(c.id));
+        const builtIn = CHARACTERS.map((c) => {
+          const old = saved.get(c.id);
+          return old ? { ...c, affection: old.affection, stage: old.stage, isUnlocked: old.isUnlocked } : c;
+        });
+        const custom = (persisted?.characters ?? []).filter((c: Character) => c.isCustom);
         return {
           ...current,
           ...persisted,
-          characters: [...(persisted.characters ?? []), ...newChars],
+          characters: [...builtIn, ...custom],
         };
       },
     }

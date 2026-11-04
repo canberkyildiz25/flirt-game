@@ -26,6 +26,31 @@ const FILTERS: { id: Filter; label: string; test: (c: Character) => boolean }[] 
   { id: 'mine', label: 'Benim karakterlerim', test: (c) => !!c.isCustom },
 ];
 
+// Görünüm ve kişilik filtreleri; her grupta "Tümü" seçiliyken o grup elemez.
+const HAIRS = ['Siyah', 'Kahve', 'Sarı', 'Kızıl', 'Pembe'];
+const VIBES = ['Tatlı', 'Cilveli', 'Gizemli', 'Enerjik', 'Sakin', 'Sert', 'Esprili'];
+const AGES: { id: string; label: string; test: (age: number) => boolean }[] = [
+  { id: 'young', label: '20-24', test: (a) => a <= 24 },
+  { id: 'mid', label: '25-29', test: (a) => a >= 25 && a <= 29 },
+  { id: 'older', label: '30+', test: (a) => a >= 30 },
+];
+
+function FilterRow({
+  label, options, value, onChange,
+}: { label: string; options: { id: string; label: string }[]; value: string | null; onChange: (v: string | null) => void }) {
+  return (
+    <View style={styles.filterRow}>
+      <Text style={styles.filterLabel}>{label}</Text>
+      <View style={styles.filters}>
+        <Chip role="tab" label="Tümü" selected={value === null} onPress={() => onChange(null)} />
+        {options.map((o) => (
+          <Chip key={o.id} role="tab" label={o.label} selected={value === o.id} onPress={() => onChange(value === o.id ? null : o.id)} />
+        ))}
+      </View>
+    </View>
+  );
+}
+
 function CreateTile({ width }: { width: number }) {
   const navigation = useNavigation<Nav>();
   return (
@@ -114,7 +139,17 @@ export default function CharactersScreen() {
   const { contentWidth, columns } = useLayout();
   const cardWidth = Math.floor((contentWidth - SIDE * 2 - GAP * (columns - 1)) / columns);
   const [filter, setFilter] = useState<Filter>('all');
-  const visible = characters.filter(FILTERS.find((f) => f.id === filter)!.test);
+  const [hair, setHair] = useState<string | null>(null);
+  const [vibe, setVibe] = useState<string | null>(null);
+  const [age, setAge] = useState<string | null>(null);
+  const [showMore, setShowMore] = useState(false);
+  const ageTest = AGES.find((a) => a.id === age)?.test;
+  const visible = characters
+    .filter(FILTERS.find((f) => f.id === filter)!.test)
+    .filter((c) => !hair || c.traits?.hair === hair)
+    .filter((c) => !vibe || c.traits?.vibe === vibe)
+    .filter((c) => !ageTest || ageTest(c.age));
+  const activeExtras = [hair, vibe, age].filter(Boolean).length;
   const tiles: (Character | typeof CREATE_TILE)[] = filter === 'locked' ? visible : [CREATE_TILE, ...visible];
 
   return (
@@ -140,7 +175,23 @@ export default function CharactersScreen() {
               {FILTERS.map((f) => (
                 <Chip key={f.id} role="tab" label={f.label} selected={filter === f.id} onPress={() => setFilter(f.id)} />
               ))}
+              <Chip
+                role="checkbox"
+                label={showMore ? 'Filtreleri gizle' : activeExtras ? `Filtreler (${activeExtras})` : 'Filtreler'}
+                selected={showMore || activeExtras > 0}
+                onPress={() => setShowMore((v) => !v)}
+              />
             </View>
+            {showMore && (
+              <View style={styles.more}>
+                <FilterRow label="Saç" options={HAIRS.map((h) => ({ id: h, label: h }))} value={hair} onChange={setHair} />
+                <FilterRow label="Tarz" options={VIBES.map((v) => ({ id: v, label: v }))} value={vibe} onChange={setVibe} />
+                <FilterRow label="Yaş" options={AGES} value={age} onChange={setAge} />
+              </View>
+            )}
+            {visible.length === 0 && (
+              <Text style={styles.empty}>Bu filtrelere uyan kimse yok. Birkaçını kaldır ya da kendi kızını yarat.</Text>
+            )}
           </View>
         }
         renderItem={({ item }) =>
@@ -155,7 +206,18 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: color.ink },
   listContent: { paddingHorizontal: SIDE, paddingTop: 56, paddingBottom: space.xxl },
   header: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: space.lg },
-  filters: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginBottom: space.xl },
+  filters: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginBottom: space.lg },
+  more: {
+    padding: space.lg,
+    borderRadius: radius.md,
+    backgroundColor: color.ink2,
+    borderWidth: 1,
+    borderColor: color.line,
+    marginBottom: space.lg,
+  },
+  filterRow: { gap: space.sm },
+  filterLabel: { ...type.label },
+  empty: { ...type.body, marginBottom: space.lg },
   row: { gap: GAP, marginBottom: GAP },
   card: {
     borderRadius: radius.lg,

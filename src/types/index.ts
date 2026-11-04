@@ -16,6 +16,7 @@ export interface Character {
   bio: string;
   tagline?: string; // kartta ve profilde görünen kısa söz
   story?: { past: string; secret: string }; // sır Crush aşamasında açılır
+  traits?: { hair: string; vibe: string }; // listede filtrelemek için
   color: string;
   affection: number; // 0-100
   stage: RelationshipStage;

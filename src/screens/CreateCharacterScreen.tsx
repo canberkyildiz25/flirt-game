@@ -4,7 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../types';
 import {
-  HAIR_COLORS, HAIR_STYLES, HOBBIES, OCCUPATIONS, OUTFITS, PERSONALITIES, SPEAKING_STYLES, Option,
+  HAIR_COLORS, HAIR_STYLES, HOBBIES, OCCUPATIONS, OUTFITS, PERSONALITIES, SPEAKING_STYLES, Option, EYE_COLORS, COMPLEXIONS,
 } from '../data/creatorOptions';
 import { characterFromRow } from '../data/customCharacters';
 import { authHeader } from '../services/aiService';
@@ -56,12 +56,14 @@ export default function CreateCharacterScreen() {
   const [hairColor, setHairColor] = useState('');
   const [hairStyle, setHairStyle] = useState('');
   const [outfit, setOutfit] = useState('');
+  const [eyeColor, setEyeColor] = useState('');
+  const [complexion, setComplexion] = useState('');
   const [bio, setBio] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const ready =
-    name.trim() && occupation && personalities.length && hobbies.length && speakingStyle && hairColor && hairStyle && outfit;
+    name.trim() && occupation && personalities.length && hobbies.length && speakingStyle && hairColor && hairStyle && outfit && eyeColor && complexion;
 
   async function create() {
     if (busy) return;
@@ -75,7 +77,7 @@ export default function CreateCharacterScreen() {
         headers: { 'Content-Type': 'application/json', ...(await authHeader()) },
         body: JSON.stringify({
           name, age, occupation, personalities, hobbies, speakingStyle, bio,
-          look: { hairColor, hairStyle, outfit },
+          look: { hairColor, hairStyle, outfit, eyeColor, complexion },
         }),
       });
       const body = await response.json().catch(() => ({}));
@@ -137,6 +139,12 @@ export default function CreateCharacterScreen() {
 
       <Text style={styles.label}>Saç modeli</Text>
       <Chips options={HAIR_STYLES} selected={[hairStyle]} onToggle={single(setHairStyle)} />
+
+      <Text style={styles.label}>Göz rengi</Text>
+      <Chips options={EYE_COLORS} selected={[eyeColor]} onToggle={single(setEyeColor)} />
+
+      <Text style={styles.label}>Ten tonu</Text>
+      <Chips options={COMPLEXIONS} selected={[complexion]} onToggle={single(setComplexion)} />
 
       <Text style={styles.label}>Tarzı</Text>
       <Chips options={OUTFITS} selected={[outfit]} onToggle={single(setOutfit)} />

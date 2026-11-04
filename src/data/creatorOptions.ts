@@ -67,6 +67,21 @@ export const HAIR_STYLES: Option[] = [
   { id: 'bun', label: 'Topuz', prompt: 'hair in a neat bun' },
 ];
 
+export const EYE_COLORS: Option[] = [
+  { id: 'brown', label: 'Kahverengi', prompt: 'warm brown eyes' },
+  { id: 'hazel', label: 'Ela', prompt: 'hazel eyes' },
+  { id: 'green', label: 'Yeşil', prompt: 'green eyes' },
+  { id: 'blue', label: 'Mavi', prompt: 'blue eyes' },
+  { id: 'grey', label: 'Gri', prompt: 'grey eyes' },
+];
+
+export const COMPLEXIONS: Option[] = [
+  { id: 'fair', label: 'Açık', prompt: 'fair complexion' },
+  { id: 'olive', label: 'Buğday', prompt: 'olive complexion' },
+  { id: 'tan', label: 'Esmer', prompt: 'tan complexion' },
+  { id: 'deep', label: 'Koyu', prompt: 'deep brown complexion' },
+];
+
 export const OUTFITS: Option[] = [
   { id: 'casual', label: 'Günlük', prompt: 'casual crew neck sweater' },
   { id: 'elegant', label: 'Şık', prompt: 'elegant high neck blouse' },

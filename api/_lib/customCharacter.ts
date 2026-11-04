@@ -1,6 +1,7 @@
 export { characterFromRow } from '../../src/data/customCharacters';
 import {
   find, HAIR_COLORS, HAIR_STYLES, HOBBIES, OCCUPATIONS, OUTFITS, PERSONALITIES, SPEAKING_STYLES, COLORS, portraitBase,
+  EYE_COLORS, COMPLEXIONS,
 } from '../../src/data/creatorOptions';
 import { isInappropriate } from '../../src/data/moderation';
 
@@ -12,7 +13,7 @@ export interface CreatorInput {
   hobbies: string[];
   speakingStyle: string;
   bio: string;
-  look: { hairColor: string; hairStyle: string; outfit: string };
+  look: { hairColor: string; hairStyle: string; outfit: string; eyeColor?: string; complexion?: string };
 }
 
 const ids = (list: { id: string }[], value: unknown, max: number) =>
@@ -35,6 +36,8 @@ export function parseCreator(body: any): CreatorInput | 'inappropriate' | null {
   if (!find(OCCUPATIONS, body?.occupation) || !find(SPEAKING_STYLES, body?.speakingStyle)) return null;
   if (!personalities || !hobbies) return null;
   if (!find(HAIR_COLORS, look.hairColor) || !find(HAIR_STYLES, look.hairStyle) || !find(OUTFITS, look.outfit)) return null;
+  if (look.eyeColor !== undefined && !find(EYE_COLORS, look.eyeColor)) return null;
+  if (look.complexion !== undefined && !find(COMPLEXIONS, look.complexion)) return null;
   return {
     name,
     age,
@@ -43,7 +46,13 @@ export function parseCreator(body: any): CreatorInput | 'inappropriate' | null {
     hobbies,
     speakingStyle: body.speakingStyle,
     bio,
-    look: { hairColor: look.hairColor, hairStyle: look.hairStyle, outfit: look.outfit },
+    look: {
+      hairColor: look.hairColor,
+      hairStyle: look.hairStyle,
+      outfit: look.outfit,
+      ...(look.eyeColor ? { eyeColor: look.eyeColor } : {}),
+      ...(look.complexion ? { complexion: look.complexion } : {}),
+    },
   };
 }
 
@@ -52,9 +61,13 @@ export function portraitPrompt(input: CreatorInput): string {
   return [
     `${portraitBase(input.age, job)} with ${find(HAIR_COLORS, input.look.hairColor)!.prompt}`,
     find(HAIR_STYLES, input.look.hairStyle)!.prompt,
+    find(EYE_COLORS, input.look.eyeColor)?.prompt,
+    find(COMPLEXIONS, input.look.complexion)?.prompt,
     `wearing a ${find(OUTFITS, input.look.outfit)!.prompt}`,
     'softly blurred background, photorealistic, no text, no logo',
-  ].join(', ');
+  ]
+    .filter(Boolean)
+    .join(', ');
 }
 
 export function rowFromInput(input: CreatorInput, seed: number) {

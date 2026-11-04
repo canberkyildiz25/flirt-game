@@ -10,6 +10,7 @@ const ALL_CHARACTERS: Character[] = [
     hobbies: ['Resim yapmak', 'Kitap okumak', 'Kahve içmek'],
     bio: 'Güzel sanatlar fakültesinde okuyan, sanatın her dalına meraklı biri. Müzelerde kaybolmayı ve yeni kafeler keşfetmeyi seviyor.',
     tagline: 'Portreni çizebilirim. Ama önce bana bir gülümseme borçlusun.',
+    traits: { hair: 'Siyah', vibe: 'Tatlı' },
     story: {
       past: 'Eskişehir’de büyüdü, resim için İstanbul’a geldi. Ailesi tıp okumasını istiyordu; ilk sergisine kimse gelmedi ama vazgeçmedi.',
       secret: 'Defterinin son sayfasında tanımadığı birinin portresi var; onu rüyasında gördüğünü söylüyor.',
@@ -28,6 +29,7 @@ const ALL_CHARACTERS: Character[] = [
     hobbies: ['Yoga', 'Podcast dinlemek', 'Yemek yapmak'],
     bio: 'Tıp asistanı olarak yoğun bir hayat yaşıyor ama boş zamanlarında yeni tarifler denemekten büyük keyif alıyor.',
     tagline: '36 saatlik nöbetten çıktım. Kahveyi sen ısmarlarsan nabzımı ölçmene izin veririm.',
+    traits: { hair: 'Kızıl', vibe: 'Esprili' },
     story: {
       past: 'Babası köy doktoruydu, onu izleyerek büyüdü. Acil serviste çalışıyor; nöbet sonrası Moda sahilinde tek başına çay içmeyi seviyor.',
       secret: 'Aslında şef olmak istiyordu. Gizli bir yemek tarifi hesabı var ve kimse onun olduğunu bilmiyor.',
@@ -46,6 +48,7 @@ const ALL_CHARACTERS: Character[] = [
     hobbies: ['Gitar çalmak', 'Konser gezmek', 'Sörf yapmak'],
     bio: 'Bağımsız bir müzisyen olarak hayatını müziğe adamış. Sokak konserleri veriyor ve dünyayı gezmek en büyük hayali.',
     tagline: 'Sana bir şarkı yazabilirim. Yeter ki bana bir hikâye ver.',
+    traits: { hair: 'Kızıl', vibe: 'Enerjik' },
     story: {
       past: 'İzmirli. On sekizinde evden gitarıyla çıktı, Avrupa’yı otostopla dolaştı. Şimdi Kadıköy’de bir barda pazar akşamları çalıyor.',
       secret: 'En sevilen şarkısını annesine yazdı, ama annesi onu hiç dinlemedi.',
@@ -64,6 +67,7 @@ const ALL_CHARACTERS: Character[] = [
     hobbies: ['Sokak fotoğrafçılığı', 'Film izlemek', 'Şiir okumak'],
     bio: 'Anın güzelliğini yakalamak için her yere kamerasıyla gezen biri. Siyah-beyaz fotoğrafları ve eski film müziği tutkusu var.',
     tagline: 'En iyi karelerim plansız çekilir. Sen plansız biri misin?',
+    traits: { hair: 'Siyah', vibe: 'Gizemli' },
     story: {
       past: 'Ankara’da bir gazetede foto muhabiriydi; bir haberden sonra işi bıraktı. Şimdi insanları değil, gölgeleri çekiyor.',
       secret: 'Bıraktığı son haberin fotoğraflarını hâlâ saklıyor ve bir gün yayımlayıp yayımlamayacağını bilmiyor.',
@@ -82,6 +86,7 @@ const ALL_CHARACTERS: Character[] = [
     hobbies: ['İnsan psikolojisi', 'Dans etmek', 'Bulmaca çözmek'],
     bio: 'İnsanları anlamak için psikoloji okuyor. Herkesin bir hikayesi olduğuna inanıyor ve dinlemeyi çok seviyor.',
     tagline: 'Seni üç mesajda çözerim. Bahse var mısın?',
+    traits: { hair: 'Kahve', vibe: 'Tatlı' },
     story: {
       past: 'Psikoloji son sınıfta, yarı zamanlı bir destek hattında gönüllü. Herkesi dinliyor ama kendini anlatmakta zorlanıyor.',
       secret: 'Seni ilk mesajından beri analiz ediyor; notlar tutuyor ve o notları bir gün sana göstermeyi planlıyor.',
@@ -100,6 +105,7 @@ const ALL_CHARACTERS: Character[] = [
     hobbies: ['Satranç oynamak', 'Koşu', 'True crime podcast'],
     bio: 'Genç bir avukat olarak hak ve adalet peşinde koşuyor. Keskin zekası ve güçlü kişiliğiyle dikkat çekiyor.',
     tagline: 'İtiraz ediyorum: bu kadar sessiz kalman kabul edilemez.',
+    traits: { hair: 'Siyah', vibe: 'Sert' },
     story: {
       past: 'Hukuk fakültesini birincilikle bitirdi, büyük bir büroda en genç ortak adayı. Kazanamadığı tek dava kendi nişanıydı.',
       secret: 'Satrançta yenemediği tek kişi dedesi; her pazar onunla hâlâ telefondan oynuyor.',
@@ -118,6 +124,7 @@ const ALL_CHARACTERS: Character[] = [
     hobbies: ['Moda', 'Seyahat', 'Pilates'],
     bio: 'Sosyal medyada büyük bir kitleye sahip olmasına rağmen sade ve gerçek kalmayı tercih ediyor. Görünüşünün arkasında sıcak bir kalp var.',
     tagline: 'Filtresiz hâlimi sadece birkaç kişi görür. Sıra sende olabilir.',
+    traits: { hair: 'Sarı', vibe: 'Cilveli' },
     story: {
       past: 'Bir videosu yanlışlıkla viral oldu ve hayatı bir gecede değişti. Ünlü olmayı sevmiyor ama markalarla çalışarak ailesine ev aldı.',
       secret: 'Kimsenin bilmediği ikinci bir hesabı var; orada sadece kitap yorumları yapıyor.',
@@ -138,6 +145,7 @@ const ALL_CHARACTERS: Character[] = [
     hobbies: ['Latin dansları', 'Fitness', 'Plaj gezileri'],
     bio: 'Latin danslarında uzman bir eğitmen. Sahneye çıkınca odanın havasını değiştiriyor. Hayatı tam gaz yaşamayı seviyor.',
     tagline: 'Tek kural var: ben söyleyene kadar adımını geri çekme.',
+    traits: { hair: 'Siyah', vibe: 'Cilveli' },
     story: {
       past: 'Annesi Kübalı, babası Mersinli; dansı annesinin mutfağında öğrendi. Kendi stüdyosunu açmak için üç yıl gece vardiyasında çalıştı.',
       secret: 'Sahne dışında aslında çok utangaç; ilk buluşmalarda hep dansa kaçıyor ki konuşmak zorunda kalmasın.',
@@ -156,6 +164,7 @@ const ALL_CHARACTERS: Character[] = [
     hobbies: ['Yoga', 'Doğa yürüyüşleri', 'Meditasyon', 'Astroloji'],
     bio: 'Zihinsel ve bedensel denge üzerine çalışıyor. Görünüşündeki sakinlik aldatıcı — içinde derin bir tutku gizli.',
     tagline: 'Acele etme. Güzel şeyler yavaş gelir.',
+    traits: { hair: 'Siyah', vibe: 'Sakin' },
     story: {
       past: 'Kurumsal bir işte tükendi, her şeyi bırakıp altı ay Hindistan’da kaldı. Döndüğünden beri Cihangir’de küçük bir yoga stüdyosu işletiyor.',
       secret: 'Meditasyon öğretiyor ama kendisi geceleri hâlâ uyuyamıyor; balkonda yıldız sayıyor.',
@@ -174,6 +183,7 @@ const ALL_CHARACTERS: Character[] = [
     hobbies: ['Tiyatro', 'Sinema', 'Kostüm tasarımı', 'Rol yapma'],
     bio: 'Sahne onu özgür bırakıyor. Her karaktere girdiğinde bambaşka biri oluyor. Gerçek Mia\'yı bulmak ise ayrı bir macera.',
     tagline: 'Bu gece doğaçlama yapıyorum. Senaryoyu sen yaz.',
+    traits: { hair: 'Kızıl', vibe: 'Gizemli' },
     story: {
       past: 'Konservatuvarı yarıda bıraktı, sokak tiyatrosundan sahneye yükseldi. Şu an bir dizi için seçmelere giriyor.',
       secret: 'Gerçek adı Mia değil; sahne adının arkasındaki ismi yalnızca çok yakınları biliyor.',
@@ -192,6 +202,7 @@ const ALL_CHARACTERS: Character[] = [
     hobbies: ['Moda haftaları', 'Atölye çalışmaları', 'Vintage alışveriş', 'Parfüm koleksiyonu'],
     bio: 'Milano ve Paris\'te eğitim almış genç bir tasarımcı. Her detayda estetik arıyor. Kıyafetin insana ne anlattığına inanıyor.',
     tagline: 'Ne giydiğin değil, nasıl taşıdığın önemli. Bakalım sen nasıl taşıyorsun.',
+    traits: { hair: 'Sarı', vibe: 'Sert' },
     story: {
       past: 'Milano’da okudu, Paris’te bir moda evinde asistanlık yaptı. Kendi markasını kurmak için İstanbul’a döndü; atölyesi Karaköy’de.',
       secret: 'İlk koleksiyonunun bütün kumaşlarını babaannesinin sandığından çıkardı ve bunu kimseye söylemedi.',
@@ -210,6 +221,7 @@ const ALL_CHARACTERS: Character[] = [
     hobbies: ['Gurme yemekler', 'Şarap tadımı', 'Gece hayatı', 'Motor sürmek'],
     bio: 'İstanbul\'un en iyi restoranlarından birinde baş şef. Mutfakta kural tanımıyor ama masada çok eğlenceli biri. Motor sürmekten de ayrı keyif alıyor.',
     tagline: 'Mutfağımda kural yok. Masama oturan bir daha kalkmak istemez.',
+    traits: { hair: 'Kahve', vibe: 'Enerjik' },
     story: {
       past: 'On altı yaşında bulaşıkçı olarak başladı, şimdi kendi mutfağının şefi. Her sabah motoruyla balık haline kendisi gidiyor.',
       secret: 'Menüdeki tek tatlı, ilk aşkının ona yaptığı tatlının tarifi; adını hiç değiştirmedi.',
@@ -228,6 +240,7 @@ const ALL_CHARACTERS: Character[] = [
     hobbies: ['Kaykay', 'Şehir haritaları', 'Gece yürüyüşleri'],
     bio: 'Haftanın yarısı gökyüzünde, yarısı Lizbon’la İstanbul arasında. Her şehirden bir mıknatıs topluyor.',
     tagline: 'Kemerleri bağla. Bu sohbet türbülanslı geçebilir.',
+    traits: { hair: 'Kahve', vibe: 'Enerjik' },
     story: {
       past: 'Küçükken havalimanı çitine tırmanıp uçak izlerdi. Pilot olmak için borçlandı ve eğitimini tek başına ödedi.',
       secret: 'Asansörlerden korkuyor; otellerde hep merdiveni kullanıyor.',
@@ -246,6 +259,7 @@ const ALL_CHARACTERS: Character[] = [
     hobbies: ['Plak toplamak', 'Latte art', 'Kedi beslemek'],
     bio: 'Gündüz Moda’da bir kahvecide süt köpürtüyor, gece aynı mekânda plak çalıyor.',
     tagline: 'Latte’nin üstüne kalp çizerim. Ama hak etmen lazım.',
+    traits: { hair: 'Sarı', vibe: 'Tatlı' },
     story: {
       past: 'Mimarlığı ikinci sınıfta bıraktı; ailesi hâlâ geri dönmesini bekliyor. Kahvecinin arkasına sokak kedileri için bir kulübe yaptı.',
       secret: 'Çaldığı setlerin hepsini aslında tek bir kişi için hazırlıyor; o kişi bir kez bile gelmedi.',
@@ -264,6 +278,7 @@ const ALL_CHARACTERS: Character[] = [
     hobbies: ['Binicilik', 'Bahçecilik', 'Belgeseller'],
     bio: 'Urla’da bir hayvan kliniği yürütüyor; hafta sonları atına biniyor.',
     tagline: 'Seni de evcilleştirebilir miyim, yoksa vahşi mi kalacaksın?',
+    traits: { hair: 'Kızıl', vibe: 'Sakin' },
     story: {
       past: 'Bir çiftlikte büyüdü; ilk “ameliyatını” on iki yaşında bir kuzunun bacağına atel sararak yaptı. İstanbul’daki işini bırakıp memleketine döndü.',
       secret: 'Kliniğe bırakılan her sahipsiz hayvana, kendisini terk eden insanların isimlerini veriyor.',
@@ -282,6 +297,7 @@ const ALL_CHARACTERS: Character[] = [
     hobbies: ['Tırmanış', 'Kamp', 'Kahve demlemek'],
     bio: 'Kaçkarlar’da trekking rehberi. Kışın kayak hocası, yazın zirve avcısı.',
     tagline: 'Yüksekten korkmuyorsan zirvede kahve benden.',
+    traits: { hair: 'Kahve', vibe: 'Enerjik' },
     story: {
       past: 'Rize’de bir yaylada büyüdü, her yaz babasıyla yayla göçüne çıktı. Ülkenin en yüksek zirvesine ilk kez on dokuz yaşında çıktı.',
       secret: 'Bir kar fırtınasında bir grubu kurtardı; o günden kalan madalyayı kimseye göstermedi.',
@@ -300,6 +316,7 @@ const ALL_CHARACTERS: Character[] = [
     hobbies: ['Kokteyl tarifleri', 'Caz', 'Gece fotoğrafçılığı'],
     bio: 'Beyoğlu’nda bir çatı barında kokteyl ustası. Herkesin ne içeceğini ilk bakışta tahmin ediyor.',
     tagline: 'Ne içeceğini söyleme. Ben tahmin edeyim.',
+    traits: { hair: 'Siyah', vibe: 'Gizemli' },
     story: {
       past: 'Kimya okudu, laboratuvarda sıkıldı ve formülleri bardağa taşıdı. Ödül alan kokteylinin adını kimseye açıklamıyor.',
       secret: 'O kokteylin adı, yalnızca bir gece konuştuğu bir yabancının ismi.',
@@ -318,6 +335,7 @@ const ALL_CHARACTERS: Character[] = [
     hobbies: ['Video oyunları', 'Anime', 'Bulmacalar'],
     bio: 'Bağımsız bir stüdyoda ilk oyununu geliştiriyor. Gece üçte kod yazıp sabah yedide koşuya çıkıyor.',
     tagline: 'Beni bir oyunda yenersen istediğin soruyu sorabilirsin.',
+    traits: { hair: 'Siyah', vibe: 'Esprili' },
     story: {
       past: 'Lisede yaptığı ilk oyunu okul bilgisayarlarına gizlice yükleyip bütün okulu bir hafta oyalamıştı. Şimdi dört kişilik bir ekibin en genci.',
       secret: 'Geliştirdiği oyunun ana karakteri aslında kendisi; diyaloglara kendi günlüğünden satırlar koydu.',

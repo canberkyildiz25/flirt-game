@@ -1,6 +1,14 @@
 import { Character } from '../types';
 import { isInappropriate } from './moderation';
 
+const HAIR_TRAIT: Record<string, string> = {
+  black: 'Siyah', brown: 'Kahve', blonde: 'Sarı', red: 'Kızıl', auburn: 'Kızıl', pink: 'Pembe',
+};
+const VIBE_TRAIT: Record<string, string> = {
+  Sıcakkanlı: 'Tatlı', Esprili: 'Esprili', Çekingen: 'Tatlı', Cesur: 'Sert',
+  Sakin: 'Sakin', Meraklı: 'Enerjik', Romantik: 'Cilveli', İğneleyici: 'Sert',
+};
+
 // custom_characters tablosundaki satır.
 export interface CustomRow {
   id: string;
@@ -11,7 +19,7 @@ export interface CustomRow {
   hobbies: string[];
   speaking_style: string;
   bio: string;
-  look: { hairColor: string; hairStyle: string; outfit: string };
+  look: { hairColor: string; hairStyle: string; outfit: string; eyeColor?: string; complexion?: string };
   color: string;
   portrait_url: string;
 }
@@ -31,6 +39,10 @@ export function characterFromRow(row: CustomRow): Character {
     stage: 'stranger',
     isUnlocked: true,
     isCustom: true,
+    traits: {
+      hair: HAIR_TRAIT[row.look?.hairColor] ?? 'Diğer',
+      vibe: VIBE_TRAIT[row.personality.split(', ')[0]] ?? 'Tatlı',
+    },
     portraitUrl: row.portrait_url,
   };
 }

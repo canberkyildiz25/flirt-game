@@ -11,12 +11,20 @@ const valid = {
   hobbies: ['books'],
   speakingStyle: 'playful',
   bio: 'Kadıköy’de yaşıyor.',
-  look: { hairColor: 'brown', hairStyle: 'waves', outfit: 'cozy' },
+  look: { hairColor: 'brown', hairStyle: 'waves', outfit: 'cozy', eyeColor: 'hazel', complexion: 'olive' },
 };
 
 describe('parseCreator', () => {
   it('accepts a complete character', () => expect(parseCreator(valid)).not.toBeNull());
   it('refuses anyone under 18', () => expect(parseCreator({ ...valid, age: 17 })).toBeNull());
+  it('puts eye colour and complexion into the image prompt', () => {
+    const prompt = portraitPrompt(parseCreator(valid) as any);
+    expect(prompt).toContain('hazel eyes');
+    expect(prompt).toContain('olive complexion');
+  });
+  it('still accepts older requests without eye colour', () => {
+    expect(parseCreator({ ...valid, look: { hairColor: 'brown', hairStyle: 'waves', outfit: 'cozy' } })).not.toBeNull();
+  });
   it('refuses options outside the list', () =>
     expect(parseCreator({ ...valid, look: { ...valid.look, outfit: 'lingerie' } })).toBeNull());
   it('refuses more than three personalities', () =>

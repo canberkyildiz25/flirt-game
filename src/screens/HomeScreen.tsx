@@ -12,6 +12,10 @@ import Icon from '../components/Icon';
 import { Button, CoinPill, HeartMeter, StageRibbon } from '../components/ui';
 import { color, font, radius, space, type } from '../theme';
 import { useLayout } from '../navigation/layout';
+import HeroCarousel, { buildSlides } from '../components/HeroCarousel';
+
+// Son eklenen kızlar; hero'daki "Yeni gelenler" bannerında görünür.
+const NEWCOMER_IDS = ['13', '14', '15', '16', '17', '18'];
 
 type Nav = StackNavigationProp<RootStackParamList, 'Home'>;
 
@@ -53,6 +57,13 @@ export default function HomeScreen() {
   const lastPlayed = lastPlayedId ? characters.find((c) => c.id === lastPlayedId) ?? null : null;
   // Önce en çok bağ kurulanlar; hiç konuşulmadıysa listedeki sırayla.
   const featured = [...unlocked].sort((a, b) => b.affection - a.affection).slice(0, 6);
+  const slides = buildSlides({
+    featured: lastPlayed ?? featured[0],
+    newcomers: characters.filter((c) => NEWCOMER_IDS.includes(c.id)),
+    onChat: (c) => navigation.navigate('Chat', { characterId: c.id }),
+    onCreate: () => navigation.navigate('Create'),
+    onBrowse: () => navigation.navigate('Characters'),
+  });
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -63,19 +74,7 @@ export default function HomeScreen() {
       </View>
       )}
 
-      <Text style={styles.hero}>Bu gece kiminle?</Text>
-      <Text style={styles.lede}>Birini seç, ilk mesajı at. Ne kadar iyi flört edersen kalpler o kadar dolar, yeni aşamalar o kadar çabuk açılır.</Text>
-
-      <View style={styles.ctas}>
-        <Button
-          label={lastPlayed ? `${lastPlayed.name} ile devam et` : 'Sohbete başla'}
-          icon="chat"
-          onPress={() =>
-            lastPlayed ? navigation.navigate('Chat', { characterId: lastPlayed.id }) : navigation.navigate('Characters')
-          }
-        />
-        <Button label="Kendi karakterini yarat" icon="plus" variant="ghost" onPress={() => navigation.navigate('Create')} />
-      </View>
+      <HeroCarousel slides={slides} />
 
       {featured.length > 0 && (
         <View style={styles.section}>
