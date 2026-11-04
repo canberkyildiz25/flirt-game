@@ -5,7 +5,6 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Image,
   Dimensions,
   Alert,
 } from 'react-native';
@@ -14,10 +13,10 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useGameStore, UNLOCK_COST } from '../store/gameStore';
 import { Character, RootStackParamList } from '../types';
-import { getStageAvatar } from '../utils/characterUtils';
+import Portrait from '../components/Portrait';
 
 const { width } = Dimensions.get('window');
-const CARD_WIDTH = (width - 48) / 2;
+const CARD_WIDTH = (Math.min(width, 520) - 48) / 2;
 
 type Nav = StackNavigationProp<RootStackParamList, 'Characters'>;
 
@@ -73,7 +72,7 @@ function CharacterCard({ character }: { character: Character }) {
     <TouchableOpacity style={styles.card} onPress={handleCardPress} activeOpacity={0.9}>
       <View style={styles.imageContainer}>
         {character.isUnlocked ? (
-          <Image source={{ uri: getStageAvatar(character) }} style={styles.avatar} />
+          <Portrait character={character} style={styles.avatar} />
         ) : (
           <View style={[styles.avatar, styles.lockedAvatar]}>
             <Text style={styles.lockIcon}>🔒</Text>

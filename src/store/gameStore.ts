@@ -31,6 +31,7 @@ interface GameState {
   chatHistory: Record<string, { message: string; isPlayer: boolean }[]>;
   coins: number;
   lastPlayedCharacterId: string | null;
+  isAdultConfirmed: boolean;
 
   setActiveCharacter: (id: string) => void;
   addAffection: (characterId: string, amount: number) => void;
@@ -39,6 +40,7 @@ interface GameState {
   earnCoins: (amount: number) => void;
   spendCoins: (amount: number) => boolean;
   setLastPlayed: (id: string) => void;
+  confirmAdult: () => void;
 }
 
 export const useGameStore = create<GameState>()(
@@ -49,6 +51,7 @@ export const useGameStore = create<GameState>()(
       chatHistory: {},
       coins: 50, // başlangıç bonus'u
       lastPlayedCharacterId: null,
+      isAdultConfirmed: false,
 
       setActiveCharacter: (id) => set({ activeCharacterId: id }),
 
@@ -94,6 +97,8 @@ export const useGameStore = create<GameState>()(
       },
 
       setLastPlayed: (id) => set({ lastPlayedCharacterId: id }),
+
+      confirmAdult: () => set({ isAdultConfirmed: true }),
     }),
     {
       name: 'flirt-game-v1',

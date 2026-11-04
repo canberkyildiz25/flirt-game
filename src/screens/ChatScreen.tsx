@@ -5,8 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Image,
-  Dimensions,
   Animated,
   TextInput,
   KeyboardAvoidingView,
@@ -16,15 +14,12 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useGameStore } from '../store/gameStore';
-import { RootStackParamList, Dialogue, DialogueOption } from '../types';
+import { RootStackParamList } from '../types';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { getAiResponse, AiMessage } from '../services/aiService';
-import { getStageAvatar } from '../utils/characterUtils';
+import Portrait from '../components/Portrait';
 
-// API key'i buraya girin ya da bir environment variable ile yönetin
-const ANTHROPIC_API_KEY = process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY ?? '';
-
-const { width } = Dimensions.get('window');
+const OPENING_CUE = '(Oyuncu sohbeti az önce açtı. İlk mesajı karakter olarak sen yaz.)';
 
 type Route = RouteProp<RootStackParamList, 'Chat'>;
 type Nav = StackNavigationProp<RootStackParamList, 'Chat'>;
@@ -47,26 +42,21 @@ export default function ChatScreen() {
   const setLastPlayed = useGameStore((s) => s.setLastPlayed);
 
   // Bu karakteri son oynanan olarak işaretle
-  React.useEffect(() => { setLastPlayed(characterId); }, []);
+  React.useEffect(() => {
+    setLastPlayed(characterId);
+    openConversation();
+  }, []);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [currentDialogue, setCurrentDialogue] = useState<Dialogue | null>(
-    character?.dialogues[0] || null
-  );
-  const [showOptions, setShowOptions] = useState(true);
   const [affectionToast, setAffectionToast] = useState<number | null>(null);
   const toastOpacity = useRef(new Animated.Value(0)).current;
   const scrollRef = useRef<ScrollView>(null);
 
-  // AI sohbet modu
-  const [isAiMode, setIsAiMode] = useState(false);
   const [inputText, setInputText] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiHistory, setAiHistory] = useState<AiMessage[]>([]);
 
   if (!character) return null;
-
-  const allDialogues = character.dialogues;
 
   function showToast(amount: number) {
     setAffectionToast(amount);
@@ -78,72 +68,27 @@ export default function ChatScreen() {
     ]).start(() => setAffectionToast(null));
   }
 
-  function handleOptionPress(option: DialogueOption) {
-    if (!currentDialogue) return;
-
-    const playerMsg: ChatMessage = {
-      id: `p-${Date.now()}`,
-      text: option.text,
-      isPlayer: true,
-      affectionChange: option.affectionChange,
-    };
-
-    const responseMsg: ChatMessage = {
-      id: `r-${Date.now() + 1}`,
-      text: option.response,
-      isPlayer: false,
-    };
-
-    setMessages((prev) => [...prev, playerMsg, responseMsg]);
-    setShowOptions(false);
-    addAffection(characterId, option.affectionChange);
-    earnCoins(5);
-    showToast(option.affectionChange);
-
-    setTimeout(() => {
-      if (option.nextDialogueId) {
-        const next = allDialogues.find((d) => d.id === option.nextDialogueId);
-        if (next) {
-          const charMsg: ChatMessage = {
-            id: `c-${Date.now() + 2}`,
-            text: next.message,
-            isPlayer: false,
-          };
-          setMessages((prev) => [...prev, charMsg]);
-          setCurrentDialogue(next);
-          setShowOptions(true);
-        }
-      } else {
-        setCurrentDialogue(null);
-        setShowOptions(false);
-        setIsAiMode(true);
-        earnCoins(20); // diyalog zinciri tamamlama bonusu
-        const transitionMsg: ChatMessage = {
-          id: `ai-start-${Date.now()}`,
-          text: '✨ Artık serbestçe sohbet edebilirsin...',
-          isPlayer: false,
-        };
-        setMessages((prev) => [...prev, transitionMsg]);
-      }
-      scrollRef.current?.scrollToEnd({ animated: true });
-    }, 800);
-
-    scrollRef.current?.scrollToEnd({ animated: true });
+  // İlk mesajı da model yazar; bu yönlendirme ekranda görünmez.
+  async function openConversation() {
+    if (!character) return;
+    setIsAiLoading(true);
+    try {
+      const { text } = await getAiResponse(character, [], OPENING_CUE);
+      setMessages([{ id: `ai-r-${Date.now()}`, text, isPlayer: false }]);
+      setAiHistory([
+        { role: 'user', content: OPENING_CUE },
+        { role: 'assistant', content: text },
+      ]);
+    } catch (e) {
+      setMessages([{ id: `ai-err-${Date.now()}`, text: '⚠️ Bağlanılamadı, sen yazarak başlayabilirsin.', isPlayer: false }]);
+    } finally {
+      setIsAiLoading(false);
+    }
   }
 
   async function handleAiSend() {
     const text = inputText.trim();
     if (!text || isAiLoading || !character) return;
-
-    if (!ANTHROPIC_API_KEY) {
-      const errorMsg: ChatMessage = {
-        id: `err-${Date.now()}`,
-        text: '⚠️ API key eksik. .env dosyasına EXPO_PUBLIC_ANTHROPIC_API_KEY ekleyin.',
-        isPlayer: false,
-      };
-      setMessages((prev) => [...prev, errorMsg]);
-      return;
-    }
 
     const playerMsg: ChatMessage = {
       id: `ai-p-${Date.now()}`,
@@ -158,7 +103,7 @@ export default function ChatScreen() {
     const newHistory: AiMessage[] = [...aiHistory, { role: 'user', content: text }];
 
     try {
-      const aiText = await getAiResponse(character, aiHistory, text, ANTHROPIC_API_KEY);
+      const { text: aiText, affectionChange } = await getAiResponse(character, aiHistory, text);
       const aiMsg: ChatMessage = {
         id: `ai-r-${Date.now()}`,
         text: aiText,
@@ -166,7 +111,8 @@ export default function ChatScreen() {
       };
       setMessages((prev) => [...prev, aiMsg]);
       setAiHistory([...newHistory, { role: 'assistant', content: aiText }]);
-      addAffection(characterId, 1);
+      addAffection(characterId, affectionChange);
+      if (affectionChange !== 0) showToast(affectionChange);
       earnCoins(3);
     } catch (e) {
       const errMsg: ChatMessage = {
@@ -192,13 +138,13 @@ export default function ChatScreen() {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
-          <Image source={{ uri: getStageAvatar(character) }} style={styles.headerAvatar} />
+          <Portrait character={character} style={styles.headerAvatar} />
           <View style={styles.headerInfo}>
             <Text style={styles.headerName}>{character.name}</Text>
             <View style={styles.onlineRow}>
               <View style={[styles.onlineDot, { backgroundColor: character.color }]} />
               <Text style={styles.onlineText}>
-                {isAiMode ? 'AI Modu Aktif' : 'Çevrimiçi'}
+                Yapay zekâ ile sohbet
               </Text>
             </View>
           </View>
@@ -217,22 +163,13 @@ export default function ChatScreen() {
           contentContainerStyle={styles.messagesContent}
           showsVerticalScrollIndicator={false}
         >
-          {messages.length === 0 && currentDialogue && (
-            <View style={styles.bubbleRow}>
-              <Image source={{ uri: getStageAvatar(character) }} style={styles.smallAvatar} />
-              <View style={[styles.bubble, styles.characterBubble, { borderColor: character.color + '44' }]}>
-                <Text style={styles.bubbleText}>{currentDialogue.message}</Text>
-              </View>
-            </View>
-          )}
-
           {messages.map((msg) => (
             <View
               key={msg.id}
               style={[styles.bubbleRow, msg.isPlayer && styles.playerRow]}
             >
               {!msg.isPlayer && (
-                <Image source={{ uri: getStageAvatar(character) }} style={styles.smallAvatar} />
+                <Portrait character={character} style={styles.smallAvatar} />
               )}
               <View
                 style={[
@@ -254,7 +191,7 @@ export default function ChatScreen() {
 
           {isAiLoading && (
             <View style={styles.bubbleRow}>
-              <Image source={{ uri: getStageAvatar(character) }} style={styles.smallAvatar} />
+              <Portrait character={character} style={styles.smallAvatar} />
               <View style={[styles.bubble, styles.characterBubble, { borderColor: character.color + '44' }]}>
                 <ActivityIndicator size="small" color={character.color} />
               </View>
@@ -274,37 +211,8 @@ export default function ChatScreen() {
           </Animated.View>
         )}
 
-        {/* Structured Dialogue Options */}
-        {showOptions && currentDialogue && (
-          <View style={styles.optionsContainer}>
-            {currentDialogue.options.map((option) => (
-              <TouchableOpacity
-                key={option.id}
-                style={styles.optionButton}
-                onPress={() => handleOptionPress(option)}
-                activeOpacity={0.8}
-              >
-                <LinearGradient
-                  colors={['rgba(255,255,255,0.06)', 'rgba(255,255,255,0.03)']}
-                  style={styles.optionGradient}
-                >
-                  <Text style={styles.optionText}>{option.text}</Text>
-                  <View style={[
-                    styles.optionHint,
-                    { backgroundColor: option.affectionChange > 0 ? '#ff69b422' : option.affectionChange < 0 ? '#ff444422' : '#ffffff11' },
-                  ]}>
-                    <Text style={{ fontSize: 10, color: option.affectionChange > 0 ? '#ff69b4' : option.affectionChange < 0 ? '#ff4444' : '#888' }}>
-                      {option.affectionChange > 0 ? `+${option.affectionChange}` : option.affectionChange < 0 ? `${option.affectionChange}` : '±0'}
-                    </Text>
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-
         {/* AI Free Chat Input */}
-        {isAiMode && (
+        {(
           <View style={styles.aiInputContainer}>
             <TextInput
               style={[styles.aiInput, { borderColor: character.color + '66' }]}
@@ -419,7 +327,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: 8,
-    maxWidth: width * 0.85,
+    maxWidth: '85%',
   },
   playerRow: {
     alignSelf: 'flex-end',
@@ -431,10 +339,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   bubble: {
-    flex: 1,
+    flexShrink: 1,
     padding: 12,
     borderRadius: 16,
-    maxWidth: width * 0.7,
   },
   characterBubble: {
     backgroundColor: 'rgba(255,255,255,0.07)',
@@ -467,35 +374,6 @@ const styles = StyleSheet.create({
   toastText: {
     fontSize: 16,
     fontWeight: '700',
-  },
-  optionsContainer: {
-    padding: 16,
-    gap: 8,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.06)',
-  },
-  optionButton: {
-    borderRadius: 14,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  optionGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 14,
-  },
-  optionText: {
-    fontSize: 15,
-    color: '#FFFFFF',
-    flex: 1,
-  },
-  optionHint: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    marginLeft: 8,
   },
   aiInputContainer: {
     flexDirection: 'row',

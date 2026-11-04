@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  Image,
   TouchableOpacity,
   ScrollView,
   Dimensions,
@@ -14,7 +13,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useGameStore, STAGE_THRESHOLDS } from '../store/gameStore';
 import { RootStackParamList, RelationshipStage } from '../types';
-import { getStageAvatar } from '../utils/characterUtils';
+import Portrait from '../components/Portrait';
 
 const { width, height } = Dimensions.get('window');
 
@@ -49,7 +48,7 @@ export default function CharacterProfileScreen() {
       <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
         {/* Hero Image */}
         <View style={styles.heroContainer}>
-          <Image source={{ uri: getStageAvatar(character) }} style={styles.heroImage} />
+          <Portrait character={character} style={styles.heroImage} />
           <LinearGradient
             colors={['rgba(10,0,21,0)', 'rgba(10,0,21,0.6)', '#0a0015']}
             style={styles.heroGradient}
@@ -138,19 +137,17 @@ export default function CharacterProfileScreen() {
             <Text style={styles.bioText}>{character.personality}</Text>
           </View>
 
-          {/* Fotoğraf Galerisi */}
-          {character.stageAvatars && (
+          {/* Portre Galerisi */}
+          {(
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Fotoğraf Galerisi</Text>
+              <Text style={styles.sectionTitle}>Portreler</Text>
               <View style={styles.galleryRow}>
                 {STAGE_ORDER.map((stage, i) => {
-                  const avatarUrl = character.stageAvatars?.[stage];
-                  if (!avatarUrl) return null;
                   const isUnlocked = i <= currentStageIndex;
                   return (
                     <View key={stage} style={styles.galleryItem}>
                       {isUnlocked ? (
-                        <Image source={{ uri: avatarUrl }} style={styles.galleryThumb} />
+                        <Portrait character={character} stage={stage} style={styles.galleryThumb} />
                       ) : (
                         <View style={[styles.galleryThumb, styles.galleryLocked]}>
                           <Text style={styles.galleryLockIcon}>🔒</Text>

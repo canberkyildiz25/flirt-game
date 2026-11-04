@@ -5,14 +5,13 @@ import {
   StyleSheet,
   TouchableOpacity,
   Dimensions,
-  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useGameStore } from '../store/gameStore';
 import { RootStackParamList } from '../types';
-import { getStageAvatar } from '../utils/characterUtils';
+import Portrait from '../components/Portrait';
 
 const { width, height } = Dimensions.get('window');
 
@@ -83,10 +82,7 @@ export default function HomeScreen() {
             onPress={() => navigation.navigate('Chat', { characterId: lastPlayed.id })}
             activeOpacity={0.85}
           >
-            <Image
-              source={{ uri: getStageAvatar(lastPlayed) }}
-              style={styles.lastPlayedAvatar}
-            />
+            <Portrait character={lastPlayed} style={styles.lastPlayedAvatar} />
             <LinearGradient
               colors={['transparent', 'rgba(0,0,0,0.7)']}
               style={styles.lastPlayedGradient}
@@ -111,10 +107,7 @@ export default function HomeScreen() {
           <View style={styles.bestCard}>
             <Text style={styles.bestLabel}>En Güçlü Bağ</Text>
             <View style={styles.bestRow}>
-              <Image
-                source={{ uri: getStageAvatar(bestCharacter) }}
-                style={styles.bestAvatar}
-              />
+              <Portrait character={bestCharacter} style={styles.bestAvatar} />
               <View style={styles.bestInfo}>
                 <Text style={styles.bestName}>{bestCharacter.name}</Text>
                 <View style={styles.bestBarTrack}>
