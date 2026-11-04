@@ -1,23 +1,22 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-} from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useGameStore, UNLOCK_COST } from '../store/gameStore';
 import { Character, RootStackParamList } from '../types';
 import Portrait from '../components/Portrait';
+import Icon from '../components/Icon';
+import { Chip, CoinPill, HeartMeter, StageRibbon } from '../components/ui';
 import { useLayout } from '../navigation/layout';
 import { confirmAction, notify } from '../utils/confirm';
+import { color, font, radius, space, type } from '../theme';
 
 const GAP = 16;
 const SIDE = 16;
 const CREATE_TILE = '__create';
+
+type Nav = StackNavigationProp<RootStackParamList, 'Characters'>;
 
 type Filter = 'all' | 'met' | 'locked' | 'mine';
 const FILTERS: { id: Filter; label: string; test: (c: Character) => boolean }[] = [
@@ -30,30 +29,21 @@ const FILTERS: { id: Filter; label: string; test: (c: Character) => boolean }[] 
 function CreateTile({ width }: { width: number }) {
   const navigation = useNavigation<Nav>();
   return (
-    <TouchableOpacity
+    <Pressable
       accessibilityRole="button"
-      style={[styles.card, styles.createCard, { width, minHeight: width * 1.2 + 96 }]}
+      style={({ pressed }) => [styles.card, styles.createCard, { width, minHeight: width * 1.3 + 84 }, pressed && styles.pressed]}
       onPress={() => navigation.navigate('Create')}
-      activeOpacity={0.9}
     >
-      <Text style={styles.createPlus}>+</Text>
-      <Text style={styles.createTitle}>Karakter oluştur</Text>
+      <View style={styles.createIcon}>
+        <Icon name="plus" size={28} color={color.ink} />
+      </View>
+      <Text style={styles.createTitle}>Kendi kartını yarat</Text>
       <Text style={styles.createBody}>Kişiliğini ve görünüşünü sen seç, portresi hazırlansın.</Text>
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
-type Nav = StackNavigationProp<RootStackParamList, 'Characters'>;
-
-const STAGE_LABELS: Record<string, string> = {
-  stranger: 'Yabancı',
-  acquaintance: 'Tanıdık',
-  friend: 'Arkadaş',
-  crush: 'Crush',
-  romantic: 'Romantik',
-  lover: 'Sevgili',
-};
-
+// Koleksiyon kartı: krem çerçeve, köşede aşama şeridi, altta ad ve kalp ölçeği.
 function CharacterCard({ character, width }: { character: Character; width: number }) {
   const navigation = useNavigation<Nav>();
   const coins = useGameStore((s) => s.coins);
@@ -62,87 +52,58 @@ function CharacterCard({ character, width }: { character: Character; width: numb
 
   function handleUnlock() {
     if (coins < UNLOCK_COST) {
-      notify(
-        'Yetersiz coin',
-        `Bu karakteri açmak için ${UNLOCK_COST} 🪙 gerekiyor. Şu an ${coins} 🪙 var. Sohbet ederek coin kazanabilirsin.`
-      );
+      notify('Jetonun yetmiyor', `Bu kartı açmak için ${UNLOCK_COST} jeton gerekiyor, sende ${coins} var. Sohbet ettikçe jeton kazanırsın.`);
       return;
     }
-    confirmAction(
-      'Yeni biriyle tanış',
-      `Bu karakteri tanımak için ${UNLOCK_COST} 🪙 harcansın mı?`,
-      `${UNLOCK_COST} 🪙 harca`,
-      () => {
-        spendCoins(UNLOCK_COST);
-        unlockCharacter(character.id);
-      }
-    );
+    confirmAction('Yeni kart aç', `Bu kartı açmak için ${UNLOCK_COST} jeton harcansın mı?`, `${UNLOCK_COST} jeton harca`, () => {
+      spendCoins(UNLOCK_COST);
+      unlockCharacter(character.id);
+    });
   }
 
-  function handleCardPress() {
-    if (character.isUnlocked) {
-      navigation.navigate('CharacterProfile', { characterId: character.id });
-    } else {
-      handleUnlock();
-    }
-  }
+  const open = () =>
+    character.isUnlocked ? navigation.navigate('CharacterProfile', { characterId: character.id }) : handleUnlock();
 
   return (
-    <TouchableOpacity style={[styles.card, { width }]} onPress={handleCardPress} activeOpacity={0.9}>
-      <View style={[styles.imageContainer, { height: width * 1.2 }]}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={character.isUnlocked ? `${character.name}, ${character.age}` : 'Kilitli kart'}
+      onPress={open}
+      style={({ pressed }) => [styles.card, { width }, pressed && styles.pressed]}
+    >
+      <View style={[styles.photo, { height: width * 1.3 }]}>
         {character.isUnlocked ? (
-          <Portrait character={character} style={styles.avatar} />
+          <>
+            <Portrait character={character} style={StyleSheet.absoluteFill} />
+            <LinearGradient colors={['transparent', 'rgba(26,15,20,0.9)']} style={styles.shade} />
+            <View style={styles.ribbon}>
+              <StageRibbon stage={character.stage} tint={color.butter} />
+            </View>
+          </>
         ) : (
-          <View style={[styles.avatar, styles.lockedAvatar]}>
-            <Text style={styles.lockIcon}>🔒</Text>
-            <Text style={styles.lockCost}>{UNLOCK_COST} 🪙</Text>
-          </View>
-        )}
-        <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.85)']}
-          style={styles.imageGradient}
-        />
-        {character.isUnlocked && (
-          <View style={[styles.stageBadge, { backgroundColor: character.color + '33', borderColor: character.color }]}>
-            <Text style={[styles.stageText, { color: character.color }]}>
-              {STAGE_LABELS[character.stage]}
-            </Text>
+          <View style={styles.locked}>
+            <Icon name="lock" size={30} color={color.creamFaint} />
+            <View style={styles.lockPrice}>
+              <Icon name="coin" size={16} />
+              <Text style={styles.lockPriceText}>{UNLOCK_COST}</Text>
+            </View>
           </View>
         )}
       </View>
-
-      <LinearGradient colors={['#1a0030', '#0d001f']} style={styles.cardBottom}>
-        <Text style={styles.characterName}>
-          {character.isUnlocked ? character.name : '???'}
+      <View style={styles.cardBottom}>
+        <Text style={styles.name} numberOfLines={1}>
+          {character.isUnlocked ? character.name : 'Gizli kart'}
         </Text>
-        <Text style={styles.characterAge}>
-          {character.isUnlocked ? `${character.age} yaşında` : 'Gizemli biri...'}
-        </Text>
-
-        {character.isUnlocked && (
-          <View style={styles.affectionBar}>
-            <View style={styles.affectionTrack}>
-              <View
-                style={[
-                  styles.affectionFill,
-                  {
-                    width: `${character.affection}%` as any,
-                    backgroundColor: character.color,
-                  },
-                ]}
-              />
-            </View>
-            <Text style={styles.affectionText}>{character.affection}</Text>
+        {character.isUnlocked ? (
+          <View style={styles.metaRow}>
+            <Text style={styles.age}>{character.age}</Text>
+            <HeartMeter value={character.affection} size={13} />
           </View>
+        ) : (
+          <Text style={styles.age}>Açmak için dokun</Text>
         )}
-
-        {!character.isUnlocked && (
-          <View style={styles.unlockHint}>
-            <Text style={styles.unlockHintText}>Tanımak için dokun</Text>
-          </View>
-        )}
-      </LinearGradient>
-    </TouchableOpacity>
+      </View>
+    </Pressable>
   );
 }
 
@@ -157,205 +118,78 @@ export default function CharactersScreen() {
   const tiles: (Character | typeof CREATE_TILE)[] = filter === 'locked' ? visible : [CREATE_TILE, ...visible];
 
   return (
-    <LinearGradient colors={['#0a0015', '#1a0030']} style={styles.container}>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>Karakterler</Text>
-          <Text style={styles.headerSubtitle}>
-            {unlockedCount}/{characters.length} tanışıldı
-          </Text>
-        </View>
-        <View style={styles.coinBadge}>
-          <Text style={styles.coinText}>🪙 {coins}</Text>
-        </View>
-      </View>
-
+    <View style={styles.container}>
       <FlatList
         data={tiles}
         keyExtractor={(item) => (item === CREATE_TILE ? item : item.id)}
-        ListHeaderComponent={
-          <View style={styles.filters}>
-            {FILTERS.map((f) => (
-              <TouchableOpacity
-                key={f.id}
-                accessibilityRole="tab"
-                aria-selected={filter === f.id}
-                onPress={() => setFilter(f.id)}
-                style={[styles.filter, filter === f.id && styles.filterOn]}
-              >
-                <Text style={[styles.filterText, filter === f.id && styles.filterTextOn]}>{f.label}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        }
         key={columns}
         numColumns={columns}
         columnWrapperStyle={styles.row}
         contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <View>
+            <View style={styles.header}>
+              <View>
+                <Text style={type.title}>Kartların</Text>
+                <Text style={type.small}>{unlockedCount}/{characters.length} kart açık</Text>
+              </View>
+              <CoinPill amount={coins} />
+            </View>
+            <View style={styles.filters}>
+              {FILTERS.map((f) => (
+                <Chip key={f.id} role="tab" label={f.label} selected={filter === f.id} onPress={() => setFilter(f.id)} />
+              ))}
+            </View>
+          </View>
+        }
         renderItem={({ item }) =>
           item === CREATE_TILE ? <CreateTile width={cardWidth} /> : <CharacterCard character={item} width={cardWidth} />
         }
-        showsVerticalScrollIndicator={false}
       />
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  container: { flex: 1, backgroundColor: color.ink },
+  listContent: { paddingHorizontal: SIDE, paddingTop: 56, paddingBottom: space.xxl },
+  header: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: space.lg },
+  filters: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginBottom: space.xl },
+  row: { gap: GAP, marginBottom: GAP },
+  card: {
+    borderRadius: radius.lg,
+    backgroundColor: color.ink2,
+    borderWidth: 3,
+    borderColor: color.cream,
+    overflow: 'hidden',
   },
-  header: {
-    paddingTop: 60,
-    paddingHorizontal: 24,
-    paddingBottom: 20,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
+  pressed: { transform: [{ translateY: 2 }] },
+  photo: { backgroundColor: color.ink3 },
+  shade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '35%' },
+  ribbon: { position: 'absolute', top: space.sm, left: space.sm },
+  locked: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.md },
+  lockPrice: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 10, minHeight: 28, borderRadius: radius.pill, backgroundColor: color.ink,
   },
-  headerTitle: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.5)',
-    marginTop: 4,
-  },
-  coinBadge: {
-    backgroundColor: 'rgba(255,200,0,0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,200,0,0.3)',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  coinText: {
-    color: '#FFD700',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
-  filter: {
-    paddingHorizontal: 14,
-    minHeight: 36,
-    justifyContent: 'center',
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.16)',
-  },
-  filterOn: { backgroundColor: 'rgba(233,30,140,0.18)', borderColor: '#E91E8C' },
-  filterText: { color: 'rgba(255,255,255,0.75)', fontSize: 14 },
-  filterTextOn: { color: '#fff', fontWeight: '700' },
+  lockPriceText: { fontFamily: font.bold, fontSize: 14, color: color.butter },
+  cardBottom: { paddingHorizontal: space.md, paddingVertical: space.md, gap: 4 },
+  name: { fontFamily: font.displayMedium, fontSize: 16, color: color.cream },
+  metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  age: { fontFamily: font.medium, fontSize: 13, color: color.creamFaint },
   createCard: {
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
+    padding: space.xl,
     borderStyle: 'dashed',
-    borderColor: 'rgba(233,30,140,0.6)',
-    backgroundColor: 'rgba(233,30,140,0.06)',
+    borderColor: color.butter,
+    backgroundColor: 'rgba(255,212,71,0.06)',
   },
-  createPlus: { color: '#E91E8C', fontSize: 44, fontWeight: '300', marginBottom: 8 },
-  createTitle: { color: '#fff', fontSize: 17, fontWeight: '800', marginBottom: 6, textAlign: 'center' },
-  createBody: { color: 'rgba(255,255,255,0.65)', fontSize: 13, lineHeight: 18, textAlign: 'center' },
-  listContent: {
-    paddingHorizontal: SIDE,
-    paddingBottom: 24,
+  createIcon: {
+    width: 56, height: 56, borderRadius: 28, backgroundColor: color.butter,
+    alignItems: 'center', justifyContent: 'center', marginBottom: space.md,
   },
-  row: {
-    gap: GAP,
-    marginBottom: GAP,
-  },
-  card: {
-    borderRadius: 20,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
-  imageContainer: {
-    position: 'relative',
-  },
-  avatar: {
-    width: '100%',
-    height: '100%',
-  },
-  lockedAvatar: {
-    backgroundColor: '#1a0030',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  lockIcon: {
-    fontSize: 36,
-  },
-  lockCost: {
-    fontSize: 13,
-    color: '#FFD700',
-    fontWeight: '700',
-  },
-  imageGradient: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 60,
-  },
-  stageBadge: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  stageText: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  cardBottom: {
-    padding: 12,
-  },
-  characterName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  characterAge: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.5)',
-    marginTop: 2,
-  },
-  affectionBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 8,
-  },
-  affectionTrack: {
-    flex: 1,
-    height: 4,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  affectionFill: {
-    height: '100%',
-    borderRadius: 2,
-  },
-  affectionText: {
-    fontSize: 10,
-    color: 'rgba(255,255,255,0.4)',
-    width: 20,
-    textAlign: 'right',
-  },
-  unlockHint: {
-    marginTop: 8,
-  },
-  unlockHintText: {
-    fontSize: 11,
-    color: 'rgba(255,200,0,0.6)',
-    fontStyle: 'italic',
-  },
+  createTitle: { fontFamily: font.displayMedium, fontSize: 16, color: color.cream, textAlign: 'center', marginBottom: 6 },
+  createBody: { ...type.small, textAlign: 'center' },
 });
