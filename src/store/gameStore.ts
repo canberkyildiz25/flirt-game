@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Character, RelationshipStage } from '../types';
+import { Character, Conversation, RelationshipStage } from '../types';
 import { CHARACTERS } from '../data/characters';
 
 const STAGE_THRESHOLDS: Record<RelationshipStage, number> = {
@@ -25,17 +25,22 @@ function getStageFromAffection(affection: number): RelationshipStage {
 // Kilitli karakterleri açmak için coin maliyeti
 export const UNLOCK_COST = 80;
 
+// Cihazda tutulan sohbet sınırı; modele zaten son 20 mesaj gider.
+const MAX_STORED_MESSAGES = 200;
+const MAX_STORED_HISTORY = 40;
+
 interface GameState {
   characters: Character[];
   activeCharacterId: string | null;
-  chatHistory: Record<string, { message: string; isPlayer: boolean }[]>;
+  conversations: Record<string, Conversation>;
   coins: number;
   lastPlayedCharacterId: string | null;
   isAdultConfirmed: boolean;
 
   setActiveCharacter: (id: string) => void;
   addAffection: (characterId: string, amount: number) => void;
-  addChatMessage: (characterId: string, message: string, isPlayer: boolean) => void;
+  saveConversation: (characterId: string, conversation: Omit<Conversation, 'updatedAt'>) => void;
+  clearConversation: (characterId: string) => void;
   unlockCharacter: (characterId: string) => void;
   earnCoins: (amount: number) => void;
   spendCoins: (amount: number) => boolean;
@@ -48,7 +53,7 @@ export const useGameStore = create<GameState>()(
     (set, get) => ({
       characters: CHARACTERS,
       activeCharacterId: null,
-      chatHistory: {},
+      conversations: {},
       coins: 50, // başlangıç bonus'u
       lastPlayedCharacterId: null,
       isAdultConfirmed: false,
@@ -68,16 +73,23 @@ export const useGameStore = create<GameState>()(
           }),
         })),
 
-      addChatMessage: (characterId, message, isPlayer) =>
+      saveConversation: (characterId, { messages, history }) =>
         set((state) => ({
-          chatHistory: {
-            ...state.chatHistory,
-            [characterId]: [
-              ...(state.chatHistory[characterId] || []),
-              { message, isPlayer },
-            ],
+          conversations: {
+            ...state.conversations,
+            [characterId]: {
+              messages: messages.slice(-MAX_STORED_MESSAGES),
+              history: history.slice(-MAX_STORED_HISTORY),
+              updatedAt: Date.now(),
+            },
           },
         })),
+
+      clearConversation: (characterId) =>
+        set((state) => {
+          const { [characterId]: _removed, ...rest } = state.conversations;
+          return { conversations: rest };
+        }),
 
       unlockCharacter: (characterId) =>
         set((state) => ({

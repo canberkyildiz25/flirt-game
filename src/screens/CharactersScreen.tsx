@@ -5,8 +5,6 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Dimensions,
-  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
@@ -14,9 +12,11 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { useGameStore, UNLOCK_COST } from '../store/gameStore';
 import { Character, RootStackParamList } from '../types';
 import Portrait from '../components/Portrait';
+import { useLayout } from '../navigation/layout';
+import { confirmAction, notify } from '../utils/confirm';
 
-const { width } = Dimensions.get('window');
-const CARD_WIDTH = (Math.min(width, 520) - 48) / 2;
+const GAP = 16;
+const SIDE = 16;
 
 type Nav = StackNavigationProp<RootStackParamList, 'Characters'>;
 
@@ -29,7 +29,7 @@ const STAGE_LABELS: Record<string, string> = {
   lover: 'Sevgili',
 };
 
-function CharacterCard({ character }: { character: Character }) {
+function CharacterCard({ character, width }: { character: Character; width: number }) {
   const navigation = useNavigation<Nav>();
   const coins = useGameStore((s) => s.coins);
   const spendCoins = useGameStore((s) => s.spendCoins);
@@ -37,26 +37,20 @@ function CharacterCard({ character }: { character: Character }) {
 
   function handleUnlock() {
     if (coins < UNLOCK_COST) {
-      Alert.alert(
-        'Yetersiz Coin',
-        `Bu karakteri açmak için ${UNLOCK_COST} 🪙 gerekiyor.\nŞu an ${coins} 🪙 var.\nDaha fazla sohbet ederek coin kazan!`,
-        [{ text: 'Tamam' }]
+      notify(
+        'Yetersiz coin',
+        `Bu karakteri açmak için ${UNLOCK_COST} 🪙 gerekiyor. Şu an ${coins} 🪙 var. Sohbet ederek coin kazanabilirsin.`
       );
       return;
     }
-    Alert.alert(
-      `${character.name}'i Tanı`,
-      `Bu gizemli karakteri tanımak için ${UNLOCK_COST} 🪙 harcamak istiyor musun?`,
-      [
-        { text: 'Vazgeç', style: 'cancel' },
-        {
-          text: `${UNLOCK_COST} 🪙 Harca`,
-          onPress: () => {
-            spendCoins(UNLOCK_COST);
-            unlockCharacter(character.id);
-          },
-        },
-      ]
+    confirmAction(
+      'Yeni biriyle tanış',
+      `Bu karakteri tanımak için ${UNLOCK_COST} 🪙 harcansın mı?`,
+      `${UNLOCK_COST} 🪙 harca`,
+      () => {
+        spendCoins(UNLOCK_COST);
+        unlockCharacter(character.id);
+      }
     );
   }
 
@@ -69,8 +63,8 @@ function CharacterCard({ character }: { character: Character }) {
   }
 
   return (
-    <TouchableOpacity style={styles.card} onPress={handleCardPress} activeOpacity={0.9}>
-      <View style={styles.imageContainer}>
+    <TouchableOpacity style={[styles.card, { width }]} onPress={handleCardPress} activeOpacity={0.9}>
+      <View style={[styles.imageContainer, { height: width * 1.2 }]}>
         {character.isUnlocked ? (
           <Portrait character={character} style={styles.avatar} />
         ) : (
@@ -131,6 +125,8 @@ export default function CharactersScreen() {
   const characters = useGameStore((s) => s.characters);
   const coins = useGameStore((s) => s.coins);
   const unlockedCount = characters.filter((c) => c.isUnlocked).length;
+  const { contentWidth, columns } = useLayout();
+  const cardWidth = Math.floor((contentWidth - SIDE * 2 - GAP * (columns - 1)) / columns);
 
   return (
     <LinearGradient colors={['#0a0015', '#1a0030']} style={styles.container}>
@@ -149,10 +145,11 @@ export default function CharactersScreen() {
       <FlatList
         data={characters}
         keyExtractor={(item) => item.id}
-        numColumns={2}
+        key={columns}
+        numColumns={columns}
         columnWrapperStyle={styles.row}
         contentContainerStyle={styles.listContent}
-        renderItem={({ item }) => <CharacterCard character={item} />}
+        renderItem={({ item }) => <CharacterCard character={item} width={cardWidth} />}
         showsVerticalScrollIndicator={false}
       />
     </LinearGradient>
@@ -195,16 +192,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   listContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: SIDE,
     paddingBottom: 24,
   },
   row: {
-    justifyContent: 'space-between',
-    gap: 16,
-    marginBottom: 16,
+    gap: GAP,
+    marginBottom: GAP,
   },
   card: {
-    width: CARD_WIDTH,
     borderRadius: 20,
     overflow: 'hidden',
     borderWidth: 1,
@@ -212,7 +207,6 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     position: 'relative',
-    height: CARD_WIDTH * 1.2,
   },
   avatar: {
     width: '100%',

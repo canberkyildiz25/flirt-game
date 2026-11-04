@@ -20,9 +20,23 @@ export interface Character {
   isUnlocked: boolean;
 }
 
+export interface StoredMessage {
+  id: string;
+  text: string;
+  isPlayer: boolean;
+  affectionChange?: number;
+}
+
+export interface Conversation {
+  messages: StoredMessage[];
+  history: { role: 'user' | 'assistant'; content: string }[]; // modele giden geçmiş
+  updatedAt: number;
+}
+
 export type RootStackParamList = {
   Home: undefined;
   Characters: undefined;
+  Conversations: undefined;
   CharacterProfile: { characterId: string };
   Chat: { characterId: string };
 };

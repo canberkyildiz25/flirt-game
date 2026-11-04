@@ -14,7 +14,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useGameStore } from '../store/gameStore';
-import { RootStackParamList } from '../types';
+import { RootStackParamList, StoredMessage } from '../types';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { getAiResponse, AiMessage } from '../services/aiService';
 import Portrait from '../components/Portrait';
@@ -24,12 +24,10 @@ const OPENING_CUE = '(Oyuncu sohbeti az önce açtı. İlk mesajı karakter olar
 type Route = RouteProp<RootStackParamList, 'Chat'>;
 type Nav = StackNavigationProp<RootStackParamList, 'Chat'>;
 
-interface ChatMessage {
-  id: string;
-  text: string;
-  isPlayer: boolean;
-  affectionChange?: number;
-}
+type ChatMessage = StoredMessage;
+
+// Hata mesajları kaydedilmez; bir sonraki açılışta görünmesinler.
+const isError = (m: ChatMessage) => m.id.startsWith('ai-err');
 
 export default function ChatScreen() {
   const navigation = useNavigation<Nav>();
@@ -40,21 +38,33 @@ export default function ChatScreen() {
   const addAffection = useGameStore((s) => s.addAffection);
   const earnCoins = useGameStore((s) => s.earnCoins);
   const setLastPlayed = useGameStore((s) => s.setLastPlayed);
+  const saved = useGameStore((s) => s.conversations[characterId]);
+  const saveConversation = useGameStore((s) => s.saveConversation);
+  const clearConversation = useGameStore((s) => s.clearConversation);
 
   // Bu karakteri son oynanan olarak işaretle
   React.useEffect(() => {
     setLastPlayed(characterId);
-    openConversation();
+    if (saved?.messages.length) {
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: false }), 50);
+    } else {
+      openConversation();
+    }
   }, []);
 
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>(saved?.messages ?? []);
   const [affectionToast, setAffectionToast] = useState<number | null>(null);
   const toastOpacity = useRef(new Animated.Value(0)).current;
   const scrollRef = useRef<ScrollView>(null);
 
   const [inputText, setInputText] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
-  const [aiHistory, setAiHistory] = useState<AiMessage[]>([]);
+  const [aiHistory, setAiHistory] = useState<AiMessage[]>(saved?.history ?? []);
+
+  React.useEffect(() => {
+    const kept = messages.filter((m) => !isError(m));
+    if (kept.length) saveConversation(characterId, { messages: kept, history: aiHistory });
+  }, [messages, aiHistory]);
 
   if (!character) return null;
 
@@ -66,6 +76,14 @@ export default function ChatScreen() {
       Animated.delay(1000),
       Animated.timing(toastOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
     ]).start(() => setAffectionToast(null));
+  }
+
+  function restartConversation() {
+    if (isAiLoading) return;
+    clearConversation(characterId);
+    setMessages([]);
+    setAiHistory([]);
+    openConversation();
   }
 
   // İlk mesajı da model yazar; bu yönlendirme ekranda görünmez.
@@ -109,7 +127,11 @@ export default function ChatScreen() {
         text: aiText,
         isPlayer: false,
       };
-      setMessages((prev) => [...prev, aiMsg]);
+      // Oyuncunun balonunda mesajın nasıl karşılandığı görünsün.
+      setMessages((prev) => [
+        ...prev.map((m) => (m.id === playerMsg.id ? { ...m, affectionChange } : m)),
+        aiMsg,
+      ]);
       setAiHistory([...newHistory, { role: 'assistant', content: aiText }]);
       addAffection(characterId, affectionChange);
       if (affectionChange !== 0) showToast(affectionChange);
@@ -135,7 +157,10 @@ export default function ChatScreen() {
       <LinearGradient colors={['#0a0015', '#1a0030']} style={styles.container}>
         {/* Header */}
         <LinearGradient colors={['#1a0030', '#0a0015']} style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <TouchableOpacity
+            onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Conversations'))}
+            style={styles.backBtn}
+          >
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
           <Portrait character={character} style={styles.headerAvatar} />
@@ -148,6 +173,14 @@ export default function ChatScreen() {
               </Text>
             </View>
           </View>
+          <TouchableOpacity
+            onPress={restartConversation}
+            accessibilityRole="button"
+            accessibilityLabel="Sohbeti baştan başlat"
+            style={styles.restartBtn}
+          >
+            <Text style={styles.restartText}>Baştan başla</Text>
+          </TouchableOpacity>
           <View style={styles.affectionBadge}>
             <Text style={styles.affectionEmoji}>💝</Text>
             <Text style={[styles.affectionBadgeText, { color: character.color }]}>
@@ -270,6 +303,18 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: '700',
+  },
+  restartBtn: {
+    paddingHorizontal: 10,
+    minHeight: 32,
+    justifyContent: 'center',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  restartText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 12,
   },
   headerAvatar: {
     width: 44,

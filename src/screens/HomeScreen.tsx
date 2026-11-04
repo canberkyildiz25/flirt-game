@@ -144,6 +144,14 @@ export default function HomeScreen() {
           </LinearGradient>
         </TouchableOpacity>
 
+        <TouchableOpacity
+          accessibilityRole="button"
+          style={styles.secondaryButton}
+          onPress={() => navigation.navigate('Conversations')}
+        >
+          <Text style={styles.secondaryButtonText}>Sohbetlerim</Text>
+        </TouchableOpacity>
+
         <Text style={styles.hint}>
           {characters.length - unlockedCount > 0
             ? `${characters.length - unlockedCount} gizemli karakter seni bekliyor 🔒`
@@ -155,6 +163,20 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  secondaryButton: {
+    minHeight: 48,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+  },
+  secondaryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   container: {
     flex: 1,
   },
