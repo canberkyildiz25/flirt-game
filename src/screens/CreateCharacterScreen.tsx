@@ -20,6 +20,7 @@ const ERRORS: Record<string, string> = {
   daily_limit: 'Bugün en fazla 3 karakter oluşturabilirsin. Yarın yine dene.',
   portrait_rejected: 'Portre bu seçimlerle üretilemedi. Saç ya da kıyafet seçimini değiştirip tekrar dene.',
   invalid: 'Bazı seçimler eksik. Her bölümden en az bir seçim yap.',
+  inappropriate: 'Ad ya da tanıtım bu oyuna uygun değil. Cinsel içerik ve reşit olmayanlara gönderme kabul edilmiyor.',
   rate_limited: 'Biraz yavaşlayalım, bir dakika sonra tekrar dene.',
 };
 

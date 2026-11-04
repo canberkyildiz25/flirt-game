@@ -25,10 +25,25 @@ describe('parseCreator', () => {
     expect(parseCreator({ ...valid, name: 'http://x.co' })).toBeNull();
     expect(parseCreator({ ...valid, name: 'a'.repeat(21) })).toBeNull();
   });
+  it('refuses sexual or underage free text', () => {
+    expect(parseCreator({ ...valid, bio: 'Mastürbasyon yapmayı seviyor.' })).toBe('inappropriate');
+    expect(parseCreator({ ...valid, bio: 'Liseli bir kız, 16 yaşında.' })).toBe('inappropriate');
+    expect(parseCreator({ ...valid, name: 'Seksi Defne' })).toBe('inappropriate');
+  });
+  it('keeps ordinary words that only look similar', () => {
+    expect(parseCreator({ ...valid, bio: 'Analiz yapmayı ve klasik müziği sever, sıkıntıda sakin kalır.' })).not.toBe('inappropriate');
+  });
   it('builds the image prompt only from listed options', () => {
-    const prompt = portraitPrompt(parseCreator({ ...valid, bio: 'nude' })!);
-    expect(prompt).not.toContain('nude');
+    const prompt = portraitPrompt(parseCreator({ ...valid, bio: 'Kahve sever.' }) as any);
     expect(prompt).toContain('chunky turtleneck knit');
+  });
+  it('hides an inappropriate bio saved before the filter', async () => {
+    const { characterFromRow } = await import('../src/data/customCharacters');
+    const character = characterFromRow({
+      id: 'x', name: 'Aslı', age: 18, occupation: 'Voleybolcu', personality: 'Çekingen', hobbies: [],
+      speaking_style: 'Kısa ve net', bio: 'Mastürbasyon yapmayı seviyor.', look: valid.look, color: '#000', portrait_url: '',
+    });
+    expect(character.bio).not.toMatch(/mastürbasyon/i);
   });
 });
 

@@ -2,6 +2,7 @@ export { characterFromRow } from '../../src/data/customCharacters';
 import {
   find, HAIR_COLORS, HAIR_STYLES, HOBBIES, OCCUPATIONS, OUTFITS, PERSONALITIES, SPEAKING_STYLES, COLORS,
 } from '../../src/data/creatorOptions';
+import { isInappropriate } from '../../src/data/moderation';
 
 export interface CreatorInput {
   name: string;
@@ -20,7 +21,7 @@ const ids = (list: { id: string }[], value: unknown, max: number) =>
     : null;
 
 // Her alan hazır listeden gelmeli; yalnızca ad ve kısa tanıtım serbest metindir.
-export function parseCreator(body: any): CreatorInput | null {
+export function parseCreator(body: any): CreatorInput | 'inappropriate' | null {
   const name = typeof body?.name === 'string' ? body.name.trim() : '';
   const age = Number(body?.age);
   const bio = typeof body?.bio === 'string' ? body.bio.trim() : '';
@@ -30,6 +31,7 @@ export function parseCreator(body: any): CreatorInput | null {
   if (!name || name.length > 20 || !/^[\p{L} '-]+$/u.test(name)) return null;
   if (!Number.isInteger(age) || age < 18 || age > 45) return null;
   if (bio.length > 240) return null;
+  if (isInappropriate(name) || isInappropriate(bio)) return 'inappropriate';
   if (!find(OCCUPATIONS, body?.occupation) || !find(SPEAKING_STYLES, body?.speakingStyle)) return null;
   if (!personalities || !hobbies) return null;
   if (!find(HAIR_COLORS, look.hairColor) || !find(HAIR_STYLES, look.hairStyle) || !find(OUTFITS, look.outfit)) return null;

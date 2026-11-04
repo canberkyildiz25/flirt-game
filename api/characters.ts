@@ -13,6 +13,7 @@ export default async function handler(req: Req, res: Res) {
   if (limited(clientIp(req))) return res.status(429).json({ error: 'rate_limited' });
 
   const input = parseCreator(req.body);
+  if (input === 'inappropriate') return res.status(400).json({ error: 'inappropriate' });
   if (!input) return res.status(400).json({ error: 'invalid' });
 
   const db = admin();

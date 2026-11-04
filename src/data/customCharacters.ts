@@ -1,4 +1,5 @@
 import { Character } from '../types';
+import { isInappropriate } from './moderation';
 
 // custom_characters tablosundaki satır.
 export interface CustomRow {
@@ -18,12 +19,13 @@ export interface CustomRow {
 export function characterFromRow(row: CustomRow): Character {
   return {
     id: row.id,
-    name: row.name,
+    name: isInappropriate(row.name) ? 'Adsız' : row.name,
     age: row.age,
     occupation: row.occupation,
     personality: row.personality,
     hobbies: row.hobbies,
-    bio: [row.bio, `Konuşma tarzı: ${row.speaking_style}.`].filter(Boolean).join(' '),
+    // Süzgeçten önce kaydedilmiş uygunsuz bir tanıtım ne gösterilir ne modele gider.
+    bio: [isInappropriate(row.bio) ? '' : row.bio, `Konuşma tarzı: ${row.speaking_style}.`].filter(Boolean).join(' '),
     color: row.color,
     affection: 0,
     stage: 'stranger',
