@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { admin, clientIp, currentUser, Req, Res, windowLimiter } from './_lib/auth';
 import { parseCreator, portraitPrompt, rowFromInput } from './_lib/customCharacter';
-import { PORTRAIT_BASE } from '../src/data/creatorOptions';
 
-const MODEL = process.env.PORTRAIT_MODEL ?? 'black-forest-labs/flux.1.1-pro';
+// Varsayılan ücretsiz topluluk modeli; ücretli model için PORTRAIT_MODEL verilir.
+const MODEL = process.env.PORTRAIT_MODEL ?? 'community/scriptsnsenses-sys/flux-2-dev-free';
 const DAILY_LIMIT = Number(process.env.DAILY_PORTRAIT_LIMIT ?? 3);
 const limited = windowLimiter(5);
 
@@ -30,15 +30,15 @@ export default async function handler(req: Req, res: Res) {
 
   const id = randomUUID();
   const seed = parseInt(id.slice(0, 6), 16);
-  const query = new URLSearchParams({ model: MODEL, width: '832', height: '1024', seed: String(seed) });
-  const prompt = encodeURIComponent(`${PORTRAIT_BASE}, ${portraitPrompt(input)}`);
+  const query = new URLSearchParams({ model: MODEL, width: '1024', height: '1024', seed: String(seed) });
+  const prompt = encodeURIComponent(portraitPrompt(input));
 
   try {
     const image = await fetch(`https://gen.pollinations.ai/image/${prompt}?${query}`, {
       headers: { Authorization: `Bearer ${process.env.POLLINATIONS_KEY}` },
       signal: AbortSignal.timeout(50_000),
     });
-    if (image.status === 422) return res.status(422).json({ error: 'portrait_rejected' });
+    if (image.status === 400 || image.status === 422) return res.status(422).json({ error: 'portrait_rejected' });
     if (!image.ok || !image.headers.get('content-type')?.startsWith('image/')) {
       console.error('portrait failed', image.status);
       return res.status(502).json({ error: 'upstream' });

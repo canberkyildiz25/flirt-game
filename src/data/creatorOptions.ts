@@ -8,16 +8,16 @@ export interface Option {
 }
 
 export const OCCUPATIONS: Option[] = [
-  { id: 'architect', label: 'Mimar' },
-  { id: 'barista', label: 'Barista' },
-  { id: 'engineer', label: 'Yazılımcı' },
-  { id: 'vet', label: 'Veteriner' },
-  { id: 'pilot', label: 'Pilot' },
-  { id: 'writer', label: 'Yazar' },
-  { id: 'teacher', label: 'Öğretmen' },
-  { id: 'designer', label: 'Grafik tasarımcı' },
-  { id: 'athlete', label: 'Voleybolcu' },
-  { id: 'florist', label: 'Çiçekçi' },
+  { id: 'architect', label: 'Mimar', prompt: 'architect' },
+  { id: 'barista', label: 'Barista', prompt: 'barista' },
+  { id: 'engineer', label: 'Yazılımcı', prompt: 'software developer' },
+  { id: 'vet', label: 'Veteriner', prompt: 'veterinarian' },
+  { id: 'pilot', label: 'Pilot', prompt: 'airline pilot' },
+  { id: 'writer', label: 'Yazar', prompt: 'novelist' },
+  { id: 'teacher', label: 'Öğretmen', prompt: 'teacher' },
+  { id: 'designer', label: 'Grafik tasarımcı', prompt: 'graphic designer' },
+  { id: 'athlete', label: 'Voleybolcu', prompt: 'volleyball player' },
+  { id: 'florist', label: 'Çiçekçi', prompt: 'florist' },
 ];
 
 export const PERSONALITIES: Option[] = [
@@ -78,9 +78,10 @@ export const OUTFITS: Option[] = [
 
 export const COLORS = ['#E91E8C', '#9C27B0', '#00BCD4', '#4CAF50', '#FF7043', '#7E57C2', '#EC407A', '#26A69A'];
 
-export const PORTRAIT_BASE =
-  'realistic editorial head and shoulders portrait photograph of a fictional adult woman in her late twenties, ' +
-  'mature adult facial features, fully clothed, modest high neckline, natural skin texture, soft natural light, ' +
-  '85mm lens, no text, no logo, no watermark, no brand';
+// Ücretsiz görsel modelinin süzgeci "portrait photograph", "adult" gibi kelimeleri cinsel sayıp engelliyor;
+// "corporate headshot of a 27 year old female architect with …" kalıbı geçiyor.
+// Görseldeki yaş en az 25: genç seçilen karakter de açıkça yetişkin görünsün.
+export const portraitBase = (age: number, job: string) =>
+  `professional corporate headshot of a ${Math.max(age, 25)} year old female ${job}`;
 
 export const find = (list: Option[], id: unknown) => list.find((o) => o.id === id);

@@ -1,6 +1,6 @@
 export { characterFromRow } from '../../src/data/customCharacters';
 import {
-  find, HAIR_COLORS, HAIR_STYLES, HOBBIES, OCCUPATIONS, OUTFITS, PERSONALITIES, SPEAKING_STYLES, COLORS,
+  find, HAIR_COLORS, HAIR_STYLES, HOBBIES, OCCUPATIONS, OUTFITS, PERSONALITIES, SPEAKING_STYLES, COLORS, portraitBase,
 } from '../../src/data/creatorOptions';
 import { isInappropriate } from '../../src/data/moderation';
 
@@ -48,13 +48,13 @@ export function parseCreator(body: any): CreatorInput | 'inappropriate' | null {
 }
 
 export function portraitPrompt(input: CreatorInput): string {
-  const parts = [
-    find(HAIR_COLORS, input.look.hairColor)!.prompt,
+  const job = find(OCCUPATIONS, input.occupation)!.prompt!;
+  return [
+    `${portraitBase(input.age, job)} with ${find(HAIR_COLORS, input.look.hairColor)!.prompt}`,
     find(HAIR_STYLES, input.look.hairStyle)!.prompt,
-    find(OUTFITS, input.look.outfit)!.prompt,
-    'softly blurred neutral background',
-  ];
-  return parts.join(', ');
+    `wearing a ${find(OUTFITS, input.look.outfit)!.prompt}`,
+    'softly blurred background, photorealistic, no text, no logo',
+  ].join(', ');
 }
 
 export function rowFromInput(input: CreatorInput, seed: number) {

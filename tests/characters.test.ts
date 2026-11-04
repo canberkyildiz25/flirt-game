@@ -33,6 +33,10 @@ describe('parseCreator', () => {
   it('keeps ordinary words that only look similar', () => {
     expect(parseCreator({ ...valid, bio: 'Analiz yapmayı ve klasik müziği sever, sıkıntıda sakin kalır.' })).not.toBe('inappropriate');
   });
+  it('keeps the portrait clearly adult whatever age was picked', async () => {
+    expect(portraitPrompt(parseCreator({ ...valid, age: 18 }) as any)).toContain('25 year old female architect');
+    expect(portraitPrompt(parseCreator({ ...valid, age: 31 }) as any)).toContain('31 year old');
+  });
   it('builds the image prompt only from listed options', () => {
     const prompt = portraitPrompt(parseCreator({ ...valid, bio: 'Kahve sever.' }) as any);
     expect(prompt).toContain('chunky turtleneck knit');
